@@ -21,7 +21,7 @@ specialist at its default (a test keeps it in sync with `agents/*.md`).
 {
   "presets": {
     "oracle":   { "model": "opus",   "effort": "xhigh" },
-    "debugger": { "model": "sonnet", "effort": "high" },
+    "debugger": { "model": "sonnet", "effort": "xhigh" },
     "explorer": { "model": "haiku" },
   },
   "sessionManager": {

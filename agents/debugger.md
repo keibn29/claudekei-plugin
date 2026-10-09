@@ -2,7 +2,7 @@
 name: debugger
 description: 'Bug investigation specialist. Use to diagnose errors, failures, regressions and unexpected behavior and find the root cause. Read-only; reports findings and a fix approach, does not implement fixes.'
 model: sonnet
-effort: high
+effort: xhigh
 tools: Read, Grep, Glob
 color: red
 ---
