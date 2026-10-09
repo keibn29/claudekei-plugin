@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claudekei",
+  "description": "claudekei: agent orchestration plugin for Claude Code (port of oh-my-openkei).",
+  "owner": {
+    "name": "Kei",
+    "url": "https://github.com/keibn29"
+  },
+  "plugins": [
+    {
+      "name": "kei",
+      "source": "./",
+      "description": "Delegation-first orchestrator + specialist subagents with resumable child sessions (port of oh-my-openkei)."
+    }
+  ]
+}

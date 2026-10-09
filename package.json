@@ -1,0 +1,20 @@
+{
+  "name": "claudekei",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Claude Code plugin port of oh-my-openkei: orchestrator + specialist subagents with resumable sessions.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keibn29/claudekei.git"
+  },
+  "scripts": {
+    "test": "node --test 'test/*.test.mjs'",
+    "sync:modes": "node scripts/sync-modes.mjs",
+    "check": "node scripts/sync-modes.mjs --check && node --test 'test/*.test.mjs' && claude plugin validate ."
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
