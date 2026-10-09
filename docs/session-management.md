@@ -72,6 +72,10 @@ Reads through `Grep`, `Bash` or MCP tools are not tracked.
 - The reminder/list is injected only when the main thread runs a `claudekei` primary agent
   (`settings.json` default, `--agent claudekei:*`, or a `/claudekei:*` mode switch). Alias
   resolution in `SendMessage` works regardless.
+- A `/claudekei:*` mode switch is remembered together with the real agent that was running
+  when it was typed. If the session is later resumed under a different `claudekei` primary
+  agent (for example `--resume <id> --agent claudekei:planner`), the real agent wins and the
+  soft mode is dropped. Sessions whose hooks report no `agent_type` keep the soft mode.
 - Hooks fail open: if a hook errors, the tool call proceeds normally.
 
 Set the variables in `~/.claude/settings.json` (or a project's `.claude/settings.json`):

@@ -14,7 +14,7 @@ import {
 } from './config.mjs';
 
 export function createState() {
-  return { version: 1, mode: null, counters: {}, children: [] };
+  return { version: 1, mode: null, modeBaseAgentType: null, counters: {}, children: [] };
 }
 
 /** `claudekei:explorer` -> `explorer`; `general-purpose` stays as is. */
@@ -180,17 +180,68 @@ export function detectModeSwitch(prompt) {
 }
 
 /**
- * The primary agent driving the main thread: an explicit mode switch wins,
- * otherwise the main-thread agent (`--agent` / settings `agent`).
+ * The claudekei primary agent named by a hook payload's `agent_type`
+ * (`claudekei:planner` -> `planner`), or null for no agent, another plugin's
+ * agent, or a non-primary agent.
  */
-export function effectiveMode(state, agentType) {
-  if (state.mode) return state.mode;
+export function primaryAgentOf(agentType) {
   if (typeof agentType !== 'string') return null;
   const idx = agentType.lastIndexOf(':');
   // Ignore same-named agents that belong to other plugins.
   if (idx !== -1 && agentType.slice(0, idx) !== PLUGIN_NAME) return null;
   const type = shortType(agentType);
   return PRIMARY_AGENTS.has(type) ? type : null;
+}
+
+/**
+ * A soft mode (set by `/claudekei:plan` etc.) only describes the agent that
+ * was running when it was set. The real main-thread agent can change later
+ * (the ClaudeKei extension restarts Claude Code with `--resume --agent ...`),
+ * and then the real agent must win over the stale soft mode.
+ *
+ * Rule: stale when the payload names a primary agent that differs from
+ * `state.modeBaseAgentType` (the primary agent active when the mode was set;
+ * null = none). A payload without a claudekei primary agent never makes a
+ * soft mode stale: it carries no information about the real agent.
+ *
+ * Legacy state (`modeBaseAgentType` missing, written before this field
+ * existed) means "set under an unknown agent". The least surprising reading
+ * is to keep the soft mode only when the real agent already equals it (the
+ * switch is then redundant), and drop it otherwise.
+ */
+export function isSoftModeStale(state, agentType) {
+  const real = primaryAgentOf(agentType);
+  if (!state.mode || !real) return false;
+  if (state.modeBaseAgentType === undefined) return real !== state.mode;
+  return real !== state.modeBaseAgentType;
+}
+
+/** Drops a stale soft mode in place. Returns true when `state` changed. */
+export function clearStaleMode(state, agentType) {
+  if (!isSoftModeStale(state, agentType)) return false;
+  state.mode = null;
+  state.modeBaseAgentType = null;
+  return true;
+}
+
+/** Records a soft mode switch together with the real agent it was set under. */
+export function applyModeSwitch(state, mode, agentType) {
+  const base = primaryAgentOf(agentType);
+  if (state.mode === mode && state.modeBaseAgentType === base) return false;
+  state.mode = mode;
+  state.modeBaseAgentType = base;
+  return true;
+}
+
+/**
+ * The primary agent driving the main thread: a soft mode switch wins while
+ * the real agent is the one it was set under, otherwise the real main-thread
+ * agent (`--agent` / settings `agent`). Pure: callers that need the stale
+ * mode removed from disk use `clearStaleMode`.
+ */
+export function effectiveMode(state, agentType) {
+  if (state.mode && !isSoftModeStale(state, agentType)) return state.mode;
+  return primaryAgentOf(agentType);
 }
 
 /**

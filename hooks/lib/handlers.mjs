@@ -17,11 +17,14 @@ import {
 } from './project-settings.mjs';
 import {
   applyAgentConfig,
+  applyModeSwitch,
   checkDelegation,
+  clearStaleMode,
   detectModeSwitch,
   effectiveMode,
   findChild,
   isAliasLike,
+  isSoftModeStale,
   parseAgentCommand,
   recordRead,
   registerChild,
@@ -56,6 +59,18 @@ function block(reason) {
 
 const isMainThread = (input) => !input.agent_id;
 
+// Reads the session state for a main-thread hook. A soft mode left over from
+// a different real agent is removed from disk first, so the real `agent_type`
+// wins from then on (see isSoftModeStale in sessions.mjs).
+function readMainState(input, store) {
+  const state = store.readState(input.session_id);
+  if (!isMainThread(input)) return state;
+  if (!isSoftModeStale(state, input.agent_type)) return state;
+  return store.withState(input.session_id, (s) =>
+    clearStaleMode(s, input.agent_type) ? undefined : false,
+  ).state;
+}
+
 function onSessionStart(input, { store, limits }) {
   store.pruneStale();
   if (input.source === 'clear') {
@@ -64,7 +79,7 @@ function onSessionStart(input, { store, limits }) {
   }
   if (input.source === 'startup') return null;
   // resume / compact: re-advertise remembered aliases.
-  const state = store.readState(input.session_id);
+  const state = readMainState(input, store);
   if (!effectiveMode(state, input.agent_type)) return null;
   return context('SessionStart', renderResumable(state, { cwd: input.cwd, limits }));
 }
@@ -136,8 +151,11 @@ function onUserPrompt(input, deps) {
   if (agentCommand) return onAgentCommand(agentCommand, input, deps);
   const switched = detectModeSwitch(input.prompt);
   const { state } = store.withState(input.session_id, (s) => {
-    if (!switched || s.mode === switched) return false;
-    s.mode = switched;
+    // Drop a soft mode that belongs to a previous real agent, then record
+    // the new switch against the agent running now.
+    const cleared = clearStaleMode(s, input.agent_type);
+    const switchedNow = switched ? applyModeSwitch(s, switched, input.agent_type) : false;
+    return cleared || switchedNow ? undefined : false;
   });
   if (TASK_NOTIFICATION.test(input.prompt ?? '')) return null;
 
@@ -155,7 +173,7 @@ function onUserPrompt(input, deps) {
 
 function onPreAgent(input, { store, agents }) {
   if (isMainThread(input)) {
-    const state = store.readState(input.session_id);
+    const state = readMainState(input, store);
     const mode = effectiveMode(state, input.agent_type);
     const reason = mode && checkDelegation(mode, input.tool_input?.subagent_type);
     if (reason) return deny(reason);
@@ -254,7 +272,7 @@ function onPostFileTool(input, { store, limits }) {
   }
 
   if (!limits.phaseReminder) return null;
-  const state = store.readState(input.session_id);
+  const state = readMainState(input, store);
   const mode = effectiveMode(state, input.agent_type);
   if (!mode || !NUDGE_AGENTS.has(mode)) return null;
   return context('PostToolUse', PHASE_REMINDER_TEXT);

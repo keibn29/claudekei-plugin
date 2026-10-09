@@ -5,6 +5,8 @@ import {
   checkDelegation,
   createState,
   detectModeSwitch,
+  applyModeSwitch,
+  clearStaleMode,
   effectiveMode,
   isAliasLike,
   parseAgentCommand,
@@ -137,7 +139,40 @@ test('effectiveMode prefers explicit mode, then claudekei main-thread agent', ()
   assert.equal(effectiveMode(state, 'other:planner'), null);
   assert.equal(effectiveMode(state, undefined), null);
   state.mode = 'planner';
+  state.modeBaseAgentType = 'orchestrator';
   assert.equal(effectiveMode(state, 'claudekei:orchestrator'), 'planner');
+});
+
+test('soft mode set under another real agent is stale: the real agent wins', () => {
+  const state = createState();
+  applyModeSwitch(state, 'sprinter', 'claudekei:orchestrator');
+  assert.deepEqual([state.mode, state.modeBaseAgentType], ['sprinter', 'orchestrator']);
+  assert.equal(effectiveMode(state, 'claudekei:orchestrator'), 'sprinter');
+  // Resumed as a different primary agent.
+  assert.equal(effectiveMode(state, 'claudekei:planner'), 'planner');
+  assert.equal(clearStaleMode(state, 'claudekei:planner'), true);
+  assert.deepEqual([state.mode, state.modeBaseAgentType], [null, null]);
+  assert.equal(clearStaleMode(state, 'claudekei:planner'), false);
+});
+
+test('soft mode without a payload agent_type, or with a foreign one, is kept', () => {
+  const state = createState();
+  applyModeSwitch(state, 'sprinter', undefined);
+  assert.equal(state.modeBaseAgentType, null);
+  assert.equal(effectiveMode(state, undefined), 'sprinter');
+  assert.equal(effectiveMode(state, 'other:planner'), 'sprinter');
+  // A real primary agent appearing later differs from "no agent": it wins.
+  assert.equal(effectiveMode(state, 'claudekei:planner'), 'planner');
+});
+
+test('legacy state without modeBaseAgentType: kept only when the real agent equals the mode', () => {
+  const legacy = () => ({ version: 1, mode: 'sprinter', counters: {}, children: [] });
+  assert.equal(effectiveMode(legacy(), 'claudekei:sprinter'), 'sprinter');
+  assert.equal(effectiveMode(legacy(), 'claudekei:planner'), 'planner');
+  assert.equal(effectiveMode(legacy(), undefined), 'sprinter');
+  const state = legacy();
+  assert.equal(clearStaleMode(state, 'claudekei:planner'), true);
+  assert.equal(state.mode, null);
 });
 
 test('parseAgentCommand maps names and mode aliases', () => {

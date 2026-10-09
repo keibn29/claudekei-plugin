@@ -173,6 +173,100 @@ test('mode switch via /claudekei:plan enables planner delegation rules', () => {
   assert.equal(allowed, null);
 });
 
+const agentCall = (session, agentType, subagent = 'claudekei:backend-developer') => ({
+  session_id: session,
+  agent_type: agentType,
+  hook_event_name: 'PreToolUse',
+  tool_name: 'Agent',
+  tool_input: { subagent_type: subagent, prompt: 'x', description: 'y' },
+});
+const prompt = (session, agentType, text) => ({
+  session_id: session,
+  agent_type: agentType,
+  hook_event_name: 'UserPromptSubmit',
+  prompt: text,
+});
+
+test('soft switch then real agent change: the real agent wins and the stale mode is cleared', () => {
+  const s = newSession();
+  run(prompt(s, 'claudekei:orchestrator', '/claudekei:sprint go'));
+  assert.deepEqual([state(s).mode, state(s).modeBaseAgentType], ['sprinter', 'orchestrator']);
+  // Same process: soft mode (sprinter) still applies, delegation unrestricted.
+  assert.equal(run(agentCall(s, 'claudekei:orchestrator')), null);
+  // Resumed as planner: planner delegation rules apply.
+  const denied = run(agentCall(s, 'claudekei:planner'));
+  assert.equal(denied.hookSpecificOutput.permissionDecision, 'deny');
+  assert.match(denied.hookSpecificOutput.permissionDecisionReason, /^planner may only/);
+  assert.equal(state(s).mode, null);
+  // Stays planner even if the payload later looks like the old base again.
+  assert.equal(run(agentCall(s, 'claudekei:orchestrator')), null);
+});
+
+test('soft switch with the same agent keeps the soft mode', () => {
+  const s = newSession();
+  run(prompt(s, 'claudekei:orchestrator', '/claudekei:plan go'));
+  for (let i = 0; i < 2; i++) {
+    const denied = run(agentCall(s, 'claudekei:orchestrator'));
+    assert.equal(denied.hookSpecificOutput.permissionDecision, 'deny');
+  }
+  assert.equal(state(s).mode, 'planner');
+});
+
+test('a prompt under a new real agent clears the stale mode before applying a new switch', () => {
+  const s = newSession();
+  run(prompt(s, 'claudekei:orchestrator', '/claudekei:plan go'));
+  run(prompt(s, 'claudekei:sprinter', 'hello'));
+  assert.equal(state(s).mode, null);
+  run(prompt(s, 'claudekei:sprinter', '/claudekei:analyze x'));
+  assert.deepEqual([state(s).mode, state(s).modeBaseAgentType], ['business-analyst', 'sprinter']);
+});
+
+test('SessionStart resume clears a stale mode and re-advertises under the real agent', () => {
+  const s = newSession();
+  launch(s, 'ab4798b070eca6b7e', 'claudekei:explorer');
+  run(prompt(s, 'claudekei:orchestrator', '/claudekei:plan go'));
+  const out = run({
+    session_id: s,
+    agent_type: 'claudekei:sprinter',
+    source: 'resume',
+    hook_event_name: 'SessionStart',
+    cwd: '/repo',
+  });
+  assert.match(out.hookSpecificOutput.additionalContext, /exp-1/);
+  assert.equal(state(s).mode, null);
+});
+
+test('legacy state file without modeBaseAgentType', () => {
+  const dir = join(DATA, 'sessions');
+  mkdirSync(dir, { recursive: true });
+  const legacy = (id) =>
+    writeFileSync(
+      join(dir, `${id}.json`),
+      JSON.stringify({ version: 1, mode: 'planner', counters: {}, children: [] }),
+    );
+  // Real agent differs from the legacy soft mode: dropped.
+  const a = newSession();
+  legacy(a);
+  assert.equal(run(agentCall(a, 'claudekei:sprinter')), null);
+  assert.equal(state(a).mode, null);
+  // Real agent equals the soft mode, or none is reported: kept.
+  const b = newSession();
+  legacy(b);
+  assert.equal(run(agentCall(b, 'claudekei:planner')).hookSpecificOutput.permissionDecision, 'deny');
+  assert.equal(state(b).mode, 'planner');
+  const c = newSession();
+  legacy(c);
+  assert.equal(run({ ...agentCall(c, undefined) }).hookSpecificOutput.permissionDecision, 'deny');
+  assert.equal(state(c).mode, 'planner');
+});
+
+test('subagent threads never clear the soft mode', () => {
+  const s = newSession();
+  run(prompt(s, 'claudekei:orchestrator', '/claudekei:plan go'));
+  run({ ...agentCall(s, 'claudekei:sprinter'), agent_id: 'sub1' });
+  assert.equal(state(s).mode, 'planner');
+});
+
 test('post-file nudge only for orchestrator/planner main thread', () => {
   const s = newSession();
   const nudge = run(base(s, { hook_event_name: 'PostToolUse', tool_name: 'Read', tool_response: {} }));
@@ -301,7 +395,7 @@ test('PreToolUse Agent applies claudekei.jsonc model/effort, delegation rules st
   assert.equal(out.hookSpecificOutput.updatedInput.prompt, 'x');
   assert.equal(call('claudekei:designer'), null);
 
-  run({ session_id: s, hook_event_name: 'UserPromptSubmit', prompt: '/claudekei:plan x' }, env);
+  run(base(s, { hook_event_name: 'UserPromptSubmit', prompt: '/claudekei:plan x' }), env);
   assert.equal(call('claudekei:backend-developer').hookSpecificOutput.permissionDecision, 'deny');
 });
 
