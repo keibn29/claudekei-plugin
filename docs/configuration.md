@@ -17,7 +17,7 @@ effort: high       # low | medium | high | xhigh | max
 
 To change them, edit the files in your clone, bump `version` in
 `.claude-plugin/plugin.json`, then run `claude plugin marketplace update claudekei`
-and `claude plugin update kei@claudekei`. While iterating, `claude --plugin-dir
+and `claude plugin update claudekei@claudekei`. While iterating, `claude --plugin-dir
 <clone>` plus `/reload-plugins` picks up edits directly. Primary agents (`orchestrator`, `planner`, `sprinter`, `business-analyst`)
 leave `model` unset, so they use whatever you pick with `/model`.
 
@@ -53,7 +53,7 @@ The plugin's `settings.json` sets `"agent": "orchestrator"`. Your own `agent` se
 takes precedence. To use plain Claude Code in a project, disable the plugin there:
 
 ```json
-{ "enabledPlugins": { "kei@claudekei": false } }
+{ "enabledPlugins": { "claudekei@claudekei": false } }
 ```
 
 ## MCP servers
@@ -98,7 +98,7 @@ their `tools:` line; edit it to grant more.
 
 ## Skills
 
-Bundled skills (`/kei:<name>`): `backend-developer`, `business-analyst`, `codemap`,
+Bundled skills (`/claudekei:<name>`): `backend-developer`, `business-analyst`, `codemap`,
 `karpathy-guidelines`, `simplify`, `vercel-react-best-practices`.
 
 Agents preload theirs through the `skills:` frontmatter. Skills that oh-my-openkei

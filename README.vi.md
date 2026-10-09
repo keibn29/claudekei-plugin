@@ -10,7 +10,7 @@ by **Kei**
 
 ## Plugin này làm gì
 
-Plugin Claude Code (tên plugin: `kei`) biến luồng hội thoại chính thành **Orchestrator**:
+Plugin Claude Code (tên plugin: `claudekei`) biến luồng hội thoại chính thành **Orchestrator**:
 chia việc cho một đội subagent chuyên trách, và ghi nhớ session của từng subagent dưới alias
 ngắn (`exp-1`, `ora-1`, `fed-2`) để các câu hỏi tiếp theo được xử lý tiếp trong cùng context
 thay vì bắt đầu lại từ đầu, giống cơ chế `task_id` bên OpenCode.
@@ -18,11 +18,11 @@ thay vì bắt đầu lại từ đầu, giống cơ chế `task_id` bên OpenCo
 | Thành phần | Cách hoạt động trong Claude Code |
 |---|---|
 | Orchestrator là agent chính | `settings.json` → `"agent": "orchestrator"` |
-| Các specialist | Subagent trong `agents/*.md`, gọi bằng `kei:<tên>` qua tool `Agent` |
+| Các specialist | Subagent trong `agents/*.md`, gọi bằng `claudekei:<tên>` qua tool `Agent` |
 | Tái sử dụng session | `SendMessage` (resume gốc của Claude Code) + hook ánh xạ alias → agent id |
 | Skill riêng cho từng agent | Frontmatter `skills:` (nạp sẵn, không cần bước "load skill trước") |
-| Quyền MCP theo agent | Allowlist `tools:` (`mcp__plugin_kei_context7__*`, …) |
-| Planner / Sprinter / Business Analyst | `claude --agent kei:<tên>` hoặc `/kei:plan`, `/kei:sprint`, `/kei:analyze` ngay trong hội thoại |
+| Quyền MCP theo agent | Allowlist `tools:` (`mcp__plugin_claudekei_context7__*`, …) |
+| Planner / Sprinter / Business Analyst | `claude --agent claudekei:<tên>` hoặc `/claudekei:plan`, `/claudekei:sprint`, `/claudekei:analyze` ngay trong hội thoại |
 | Nhắc workflow | Hook `UserPromptSubmit` / `PostToolUse` |
 
 ## Cài đặt
@@ -34,11 +34,11 @@ claude plugin marketplace add keibn29/claudekei
 ```
 
 ```bash
-claude plugin install kei@claudekei
+claude plugin install claudekei@claudekei
 ```
 
 Hoặc trong Claude Code: `/plugin marketplace add keibn29/claudekei`, rồi
-`/plugin install kei@claudekei`.
+`/plugin install claudekei@claudekei`.
 
 Cập nhật lên bản mới nhất:
 
@@ -47,7 +47,7 @@ claude plugin marketplace update claudekei
 ```
 
 ```bash
-claude plugin update kei@claudekei
+claude plugin update claudekei@claudekei
 ```
 
 Muốn dùng bản clone ở máy thì thêm thư mục: `claude plugin marketplace add ~/Projects/claudekei`.
@@ -62,7 +62,7 @@ Kiểm tra: mở session và gõ `ping all agents`, orchestrator sẽ gọi lầ
 
 > Plugin đặt **Orchestrator làm agent chính mặc định** ở mọi nơi nó được bật. Muốn dùng
 > Claude bình thường trong một project, tắt plugin ở đó:
-> `.claude/settings.json` → `{"enabledPlugins": {"kei@claudekei": false}}`.
+> `.claude/settings.json` → `{"enabledPlugins": {"claudekei@claudekei": false}}`.
 
 ## Đội agent
 
@@ -70,15 +70,15 @@ Kiểm tra: mở session và gõ `ping all agents`, orchestrator sẽ gọi lầ
 
 | Agent | Khởi động | Vai trò |
 |---|---|---|
-| **orchestrator** (mặc định) | `claude` / `/kei:orchestrate` | Điều phối, ưu tiên ủy quyền: chia việc, chạy song song, reuse session, tổng hợp và kiểm tra |
-| **planner** | `claude --agent kei:planner` / `/kei:plan` | Lập kế hoạch qua phỏng vấn; chỉ ủy quyền cho explorer/librarian/oracle/designer; trả về `<planner-plan>` |
-| **sprinter** | `claude --agent kei:sprinter` / `/kei:sprint` | Tự làm nhanh, không ủy quyền |
-| **business-analyst** | `claude --agent kei:business-analyst` / `/kei:analyze` | Nghiên cứu, viết yêu cầu, chiến lược; lưu phân tích vào `.business-analyst/*.md` |
+| **orchestrator** (mặc định) | `claude` / `/claudekei:orchestrate` | Điều phối, ưu tiên ủy quyền: chia việc, chạy song song, reuse session, tổng hợp và kiểm tra |
+| **planner** | `claude --agent claudekei:planner` / `/claudekei:plan` | Lập kế hoạch qua phỏng vấn; chỉ ủy quyền cho explorer/librarian/oracle/designer; trả về `<planner-plan>` |
+| **sprinter** | `claude --agent claudekei:sprinter` / `/claudekei:sprint` | Tự làm nhanh, không ủy quyền |
+| **business-analyst** | `claude --agent claudekei:business-analyst` / `/claudekei:analyze` | Nghiên cứu, viết yêu cầu, chiến lược; lưu phân tích vào `.business-analyst/*.md` |
 
-`/kei:<chế độ>` đổi vai trò ngay trong hội thoại hiện tại (tiện khi dùng app desktop).
+`/claudekei:<chế độ>` đổi vai trò ngay trong hội thoại hiện tại (tiện khi dùng app desktop).
 `--agent` khởi động session với prompt và giới hạn tool riêng của agent đó.
 
-### Specialist (`subagent_type: kei:<tên>`)
+### Specialist (`subagent_type: claudekei:<tên>`)
 
 | Agent | Model mặc định | Quyền | Vai trò |
 |---|---|---|---|
@@ -123,7 +123,7 @@ Chi tiết: **[docs/session-management.md](docs/session-management.md)**.
 
 ```bash
 npm test                # test hook (node:test)
-npm run sync:modes      # tạo lại skill /kei:* từ agents/*.md
+npm run sync:modes      # tạo lại skill /claudekei:* từ agents/*.md
 npm run check           # kiểm tra sync + test + claude plugin validate
 ```
 

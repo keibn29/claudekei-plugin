@@ -1,6 +1,6 @@
 // Static configuration shared by the hook handlers.
 
-export const PLUGIN_NAME = 'kei';
+export const PLUGIN_NAME = 'claudekei';
 
 export const PRIMARY_AGENTS = new Set([
   'orchestrator',

@@ -1,6 +1,6 @@
 {
-  "name": "kei",
-  "version": "0.1.0",
+  "name": "claudekei",
+  "version": "0.2.0",
   "description": "claudekei: delegation-first orchestrator with a team of specialist subagents (explorer, librarian, oracle, debugger, designer, frontend/backend/trigger developers, observer), resumable child sessions via short aliases, and planner/sprinter/business-analyst modes. Port of oh-my-openkei for Claude Code.",
   "author": {
     "name": "Kei",

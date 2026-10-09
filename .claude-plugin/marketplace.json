@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "kei",
+      "name": "claudekei",
       "source": "./",
       "description": "Delegation-first orchestrator + specialist subagents with resumable child sessions (port of oh-my-openkei)."
     }

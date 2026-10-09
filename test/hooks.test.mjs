@@ -1,4 +1,4 @@
-// Drives hooks/kei.mjs as a subprocess with payload shapes captured from a
+// Drives hooks/claudekei.mjs as a subprocess with payload shapes captured from a
 // real Claude Code session (v2.1.x), using an isolated CLAUDE_PLUGIN_DATA.
 
 import assert from 'node:assert/strict';
@@ -9,8 +9,8 @@ import { join } from 'node:path';
 import { after, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-const HOOK = fileURLToPath(new URL('../hooks/kei.mjs', import.meta.url));
-const DATA = mkdtempSync(join(tmpdir(), 'kei-hooks-'));
+const HOOK = fileURLToPath(new URL('../hooks/claudekei.mjs', import.meta.url));
+const DATA = mkdtempSync(join(tmpdir(), 'claudekei-hooks-'));
 after(() => rmSync(DATA, { recursive: true, force: true }));
 
 let sessionCounter = 0;
@@ -29,7 +29,7 @@ function run(payload, env = {}) {
 const base = (session, extra = {}) => ({
   session_id: session,
   cwd: '/repo',
-  agent_type: 'kei:orchestrator',
+  agent_type: 'claudekei:orchestrator',
   ...extra,
 });
 
@@ -49,14 +49,14 @@ const state = (session) =>
 
 test('PostToolUse Agent registers an alias and tells the model', () => {
   const s = newSession();
-  const out = launch(s, 'ab4798b070eca6b7e', 'kei:explorer', 'async_launched');
+  const out = launch(s, 'ab4798b070eca6b7e', 'claudekei:explorer', 'async_launched');
   assert.match(out.hookSpecificOutput.additionalContext, /`exp-1`/);
   assert.equal(state(s).children[0].status, 'running');
 });
 
 test('PreToolUse SendMessage rewrites alias to agent id, keeping other fields', () => {
   const s = newSession();
-  launch(s, 'ab4798b070eca6b7e', 'kei:explorer');
+  launch(s, 'ab4798b070eca6b7e', 'claudekei:explorer');
   const out = run(
     base(s, {
       hook_event_name: 'PreToolUse',
@@ -83,7 +83,7 @@ test('PreToolUse SendMessage rewrites alias to agent id, keeping other fields', 
 
 test('PreToolUse SendMessage denies unknown aliases and passes raw ids through', () => {
   const s = newSession();
-  launch(s, 'a1', 'kei:oracle');
+  launch(s, 'a1', 'claudekei:oracle');
   const denied = run(
     base(s, {
       hook_event_name: 'PreToolUse',
@@ -106,8 +106,8 @@ test('PreToolUse SendMessage denies unknown aliases and passes raw ids through',
 
 test('SubagentStop settles a child; SendMessage marks it running again', () => {
   const s = newSession();
-  launch(s, 'a1', 'kei:explorer', 'async_launched');
-  run({ session_id: s, hook_event_name: 'SubagentStop', agent_id: 'a1', agent_type: 'kei:explorer' });
+  launch(s, 'a1', 'claudekei:explorer', 'async_launched');
+  run({ session_id: s, hook_event_name: 'SubagentStop', agent_id: 'a1', agent_type: 'claudekei:explorer' });
   assert.equal(state(s).children[0].status, 'idle');
   run(
     base(s, {
@@ -122,13 +122,13 @@ test('SubagentStop settles a child; SendMessage marks it running again', () => {
 
 test('subagent Read calls feed read context into the resumable list', () => {
   const s = newSession();
-  launch(s, 'a1', 'kei:explorer');
+  launch(s, 'a1', 'claudekei:explorer');
   run({
     session_id: s,
     hook_event_name: 'PostToolUse',
     tool_name: 'Read',
     agent_id: 'a1',
-    agent_type: 'kei:explorer',
+    agent_type: 'claudekei:explorer',
     tool_input: { file_path: '/repo/src/app.ts' },
     tool_response: { type: 'text', file: { filePath: '/repo/src/app.ts', numLines: 42 } },
   });
@@ -139,7 +139,7 @@ test('subagent Read calls feed read context into the resumable list', () => {
   assert.match(ctx, /Context read by exp-1: src\/app\.ts \(42 lines\)/);
 });
 
-test('UserPromptSubmit is silent outside kei primary agents and for task notifications', () => {
+test('UserPromptSubmit is silent outside claudekei primary agents and for task notifications', () => {
   const s = newSession();
   assert.equal(
     run({ session_id: s, hook_event_name: 'UserPromptSubmit', prompt: 'hello' }),
@@ -151,21 +151,21 @@ test('UserPromptSubmit is silent outside kei primary agents and for task notific
   );
 });
 
-test('mode switch via /kei:plan enables planner delegation rules', () => {
+test('mode switch via /claudekei:plan enables planner delegation rules', () => {
   const s = newSession();
-  run({ session_id: s, hook_event_name: 'UserPromptSubmit', prompt: '/kei:plan add billing' });
+  run({ session_id: s, hook_event_name: 'UserPromptSubmit', prompt: '/claudekei:plan add billing' });
   const denied = run({
     session_id: s,
     hook_event_name: 'PreToolUse',
     tool_name: 'Agent',
-    tool_input: { subagent_type: 'kei:backend-developer', prompt: 'x', description: 'y' },
+    tool_input: { subagent_type: 'claudekei:backend-developer', prompt: 'x', description: 'y' },
   });
   assert.equal(denied.hookSpecificOutput.permissionDecision, 'deny');
   const allowed = run({
     session_id: s,
     hook_event_name: 'PreToolUse',
     tool_name: 'Agent',
-    tool_input: { subagent_type: 'kei:explorer', prompt: 'x', description: 'y' },
+    tool_input: { subagent_type: 'claudekei:explorer', prompt: 'x', description: 'y' },
   });
   assert.equal(allowed, null);
 });
@@ -176,7 +176,7 @@ test('post-file nudge only for orchestrator/planner main thread', () => {
   assert.match(nudge.hookSpecificOutput.additionalContext, /Recall the workflow rules/);
   const none = run(
     base(s, {
-      agent_type: 'kei:sprinter',
+      agent_type: 'claudekei:sprinter',
       hook_event_name: 'PostToolUse',
       tool_name: 'Read',
       tool_response: {},
@@ -192,7 +192,7 @@ test('post-file nudge only for orchestrator/planner main thread', () => {
 
 test('SessionStart re-advertises aliases after compaction and clears on /clear', () => {
   const s = newSession();
-  launch(s, 'a1', 'kei:oracle');
+  launch(s, 'a1', 'claudekei:oracle');
   const resumed = run(base(s, { hook_event_name: 'SessionStart', source: 'compact' }));
   assert.match(resumed.hookSpecificOutput.additionalContext, /ora-1/);
   run(base(s, { hook_event_name: 'SessionStart', source: 'clear' }));
@@ -218,7 +218,7 @@ test('parallel PostToolUse hooks do not lose registrations', async () => {
         base(s, {
           hook_event_name: 'PostToolUse',
           tool_name: 'Agent',
-          tool_input: { description: `p${i}`, subagent_type: 'kei:backend-developer' },
+          tool_input: { description: `p${i}`, subagent_type: 'claudekei:backend-developer' },
           tool_response: { status: 'async_launched', agentId: `p${i}` },
         }),
       ),

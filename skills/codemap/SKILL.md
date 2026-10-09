@@ -52,7 +52,7 @@ This creates:
 - `.slim/codemap.json` - File and folder hashes for change detection
 - Empty `codemap.md` files in all relevant subdirectories
 
-4. **Delegate codemap writing to `kei:frontend-developer` or `kei:backend-developer` subagents** - Spawn one per folder (parallel Agent calls in one message) to read code and create or update its specific `codemap.md` file.
+4. **Delegate codemap writing to `claudekei:frontend-developer` or `claudekei:backend-developer` subagents** - Spawn one per folder (parallel Agent calls in one message) to read code and create or update its specific `codemap.md` file.
 
 ### Step 3: Detect Changes (If state already exists)
 

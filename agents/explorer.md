@@ -2,7 +2,7 @@
 name: explorer
 description: 'Codebase reconnaissance specialist. Use to locate files, symbols, code patterns, and evidence ("Where is X?", "Find Y") when scope is broad or uncertain, or to run several searches in parallel. Read-only; returns paths and snippets, not diagnosis.'
 model: haiku
-tools: Read, Grep, Glob, mcp__plugin_kei_serena__*, mcp__serena__*
+tools: Read, Grep, Glob, mcp__plugin_claudekei_serena__*, mcp__serena__*
 color: cyan
 ---
 

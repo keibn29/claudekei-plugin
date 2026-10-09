@@ -24,7 +24,7 @@ const LOCK_TIMEOUT_MS = 3_000;
 export function stateDir() {
   const base =
     process.env.CLAUDE_PLUGIN_DATA ||
-    join(homedir(), '.claude', 'plugins', 'data', 'kei');
+    join(homedir(), '.claude', 'plugins', 'data', 'claudekei');
   return join(base, 'sessions');
 }
 

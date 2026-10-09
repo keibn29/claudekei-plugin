@@ -5,18 +5,18 @@
 | oh-my-openkei | claudekei |
 |---|---|
 | Orchestrator, Planner, Sprinter, Business Analyst prompts | `agents/{orchestrator,planner,sprinter,business-analyst}.md` (same text, Claude Code tool names) |
-| 9 specialist prompts | `agents/*.md`, invoked as `kei:<name>` |
+| 9 specialist prompts | `agents/*.md`, invoked as `claudekei:<name>` |
 | `task` tool | `Agent` tool |
 | `task_id="exp-1"` reuse | `SendMessage(to: "exp-1")` |
-| Task session manager (aliases, read context, protected running children, per-agent cap) | `hooks/kei.mjs` + native subagent resume |
+| Task session manager (aliases, read context, protected running children, per-agent cap) | `hooks/claudekei.mjs` + native subagent resume |
 | `question` tool | `AskUserQuestion` (primary agents); subagents return the question to the caller |
 | Phase reminder, post-Read/Write nudge | `UserPromptSubmit` / `PostToolUse` hooks |
 | Planner delegate validation | `PreToolUse` hook on `Agent` + `tools: Agent(...)` allowlist |
 | Read-only permission profile | `tools:` allowlists |
 | Per-agent skill permissions + "load skills first" | `skills:` frontmatter (preloaded) |
-| Per-agent MCP lists | `tools:` allowlists with `mcp__plugin_kei_<server>__*` |
+| Per-agent MCP lists | `tools:` allowlists with `mcp__plugin_claudekei_<server>__*` |
 | `variant` | `effort` |
-| Tab to switch primary agent | `claude --agent kei:<name>` or `/kei:orchestrate`, `/kei:plan`, `/kei:sprint`, `/kei:analyze` |
+| Tab to switch primary agent | `claude --agent claudekei:<name>` or `/claudekei:orchestrate`, `/claudekei:plan`, `/claudekei:sprint`, `/claudekei:analyze` |
 | Bundled skills | `skills/` (codemap now registers in `CLAUDE.md`) |
 | `bunx oh-my-openkei install` | `claude plugin marketplace add` + `claude plugin install` |
 

@@ -17,7 +17,7 @@ export function createState() {
   return { version: 1, mode: null, counters: {}, children: [] };
 }
 
-/** `kei:explorer` -> `explorer`; `general-purpose` stays as is. */
+/** `claudekei:explorer` -> `explorer`; `general-purpose` stays as is. */
 export function shortType(agentType) {
   if (typeof agentType !== 'string') return '';
   const idx = agentType.lastIndexOf(':');
@@ -161,17 +161,17 @@ export function checkDelegation(mode, subagentType) {
   if (!allowed) return null;
   const type = shortType(subagentType);
   if (allowed.has(type)) return null;
-  const list = [...allowed].map((t) => `kei:${t}`).join(', ');
+  const list = [...allowed].map((t) => `claudekei:${t}`).join(', ');
   return `${mode} may only delegate to: ${list}. "${subagentType}" is not allowed in ${mode} mode.`;
 }
 
 /**
- * Detects mode-switch commands typed by the user (`/kei:plan ...`). Bare
- * `/plan` is Claude Code's own plan mode, so only `kei:`-prefixed commands
+ * Detects mode-switch commands typed by the user (`/claudekei:plan ...`). Bare
+ * `/plan` is Claude Code's own plan mode, so only `claudekei:`-prefixed commands
  * and unambiguous bare names count.
  */
 export function detectModeSwitch(prompt) {
-  const match = /^\s*\/(kei:)?(orchestrate|plan|sprint|analyze)(?:\s|$)/.exec(
+  const match = /^\s*\/(claudekei:)?(orchestrate|plan|sprint|analyze)(?:\s|$)/.exec(
     prompt ?? '',
   );
   if (!match) return null;

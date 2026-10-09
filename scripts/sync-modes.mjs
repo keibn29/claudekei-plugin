@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Generates the in-conversation mode-switch skills (/kei:plan, /kei:sprint,
-// /kei:analyze, /kei:orchestrate) from the primary agent definitions, so the
+// Generates the in-conversation mode-switch skills (/claudekei:plan, /claudekei:sprint,
+// /claudekei:analyze, /claudekei:orchestrate) from the primary agent definitions, so the
 // agent file stays the single source of truth for each prompt.
 //
 //   node scripts/sync-modes.mjs          write skills/<command>/SKILL.md
@@ -48,7 +48,7 @@ function agentBody(agent) {
 
 export function renderMode(mode) {
   const others = MODES.filter((m) => m !== mode)
-    .map((m) => `/kei:${m.command}`)
+    .map((m) => `/claudekei:${m.command}`)
     .join(', ');
   return `---
 name: ${mode.command}

@@ -10,7 +10,7 @@ by **Kei**
 
 ## What it is
 
-A Claude Code plugin (plugin name: `kei`) that turns the main conversation into an
+A Claude Code plugin (plugin name: `claudekei`) that turns the main conversation into an
 **Orchestrator** that routes work to a team of specialist subagents, and remembers
 each specialist's session under a short alias (`exp-1`, `ora-1`, `fed-2`) so
 follow-up work continues in the same context instead of starting from scratch.
@@ -18,11 +18,11 @@ follow-up work continues in the same context instead of starting from scratch.
 | Piece | How it works in Claude Code |
 |---|---|
 | Orchestrator as the main agent | `settings.json` → `"agent": "orchestrator"` |
-| Specialists | `agents/*.md` subagents, invoked as `kei:<name>` via the `Agent` tool |
+| Specialists | `agents/*.md` subagents, invoked as `claudekei:<name>` via the `Agent` tool |
 | Session reuse | Native `SendMessage` resume + hooks that map aliases → agent ids |
 | Per-agent skills | `skills:` frontmatter (preloaded, no "load skills first" step) |
-| Per-agent MCP access | `tools:` allowlists (`mcp__plugin_kei_context7__*`, …) |
-| Planner / Sprinter / Business Analyst | `claude --agent kei:<name>` or `/kei:plan`, `/kei:sprint`, `/kei:analyze` in-session |
+| Per-agent MCP access | `tools:` allowlists (`mcp__plugin_claudekei_context7__*`, …) |
+| Planner / Sprinter / Business Analyst | `claude --agent claudekei:<name>` or `/claudekei:plan`, `/claudekei:sprint`, `/claudekei:analyze` in-session |
 | Workflow reminders | `UserPromptSubmit` / `PostToolUse` hooks |
 
 ## Install
@@ -34,11 +34,11 @@ claude plugin marketplace add keibn29/claudekei
 ```
 
 ```bash
-claude plugin install kei@claudekei
+claude plugin install claudekei@claudekei
 ```
 
 Or inside Claude Code: `/plugin marketplace add keibn29/claudekei`, then
-`/plugin install kei@claudekei`.
+`/plugin install claudekei@claudekei`.
 
 Update to the latest release:
 
@@ -47,7 +47,7 @@ claude plugin marketplace update claudekei
 ```
 
 ```bash
-claude plugin update kei@claudekei
+claude plugin update claudekei@claudekei
 ```
 
 To work from a local clone instead, add the folder: `claude plugin marketplace add ~/Projects/claudekei`.
@@ -63,7 +63,7 @@ specialist.
 
 > The plugin makes **Orchestrator the default main agent** wherever it is enabled. To keep
 > plain Claude in a project, disable the plugin there:
-> `.claude/settings.json` → `{"enabledPlugins": {"kei@claudekei": false}}`.
+> `.claude/settings.json` → `{"enabledPlugins": {"claudekei@claudekei": false}}`.
 
 ## The team
 
@@ -71,15 +71,15 @@ specialist.
 
 | Agent | Start it with | Role |
 |---|---|---|
-| **orchestrator** (default) | `claude` / `/kei:orchestrate` | Delegation-first coordinator: routes, parallelizes, reuses sessions, integrates and verifies |
-| **planner** | `claude --agent kei:planner` / `/kei:plan` | Interview-first planning; delegates only to explorer/librarian/oracle/designer; returns `<planner-plan>` |
-| **sprinter** | `claude --agent kei:sprinter` / `/kei:sprint` | Fast self-executing agent, no delegation |
-| **business-analyst** | `claude --agent kei:business-analyst` / `/kei:analyze` | Research + requirements + strategy; delegates to explorer/librarian/oracle; saves analysis to `.business-analyst/*.md` |
+| **orchestrator** (default) | `claude` / `/claudekei:orchestrate` | Delegation-first coordinator: routes, parallelizes, reuses sessions, integrates and verifies |
+| **planner** | `claude --agent claudekei:planner` / `/claudekei:plan` | Interview-first planning; delegates only to explorer/librarian/oracle/designer; returns `<planner-plan>` |
+| **sprinter** | `claude --agent claudekei:sprinter` / `/claudekei:sprint` | Fast self-executing agent, no delegation |
+| **business-analyst** | `claude --agent claudekei:business-analyst` / `/claudekei:analyze` | Research + requirements + strategy; delegates to explorer/librarian/oracle; saves analysis to `.business-analyst/*.md` |
 
-`/kei:<mode>` switches the role inside the current conversation (handy in the desktop
+`/claudekei:<mode>` switches the role inside the current conversation (handy in the desktop
 app). `--agent` starts a session with that agent's own prompt and tool restrictions.
 
-### Specialists (`subagent_type: kei:<name>`)
+### Specialists (`subagent_type: claudekei:<name>`)
 
 | Agent | Default model | Access | Role |
 |---|---|---|---|
@@ -125,7 +125,7 @@ Details: **[docs/session-management.md](docs/session-management.md)**.
 
 ```bash
 npm test                # hook unit + integration tests (node:test)
-npm run sync:modes      # regenerate /kei:* mode skills from agents/*.md
+npm run sync:modes      # regenerate /claudekei:* mode skills from agents/*.md
 npm run check           # sync check + tests + claude plugin validate
 ```
 

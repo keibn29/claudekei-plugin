@@ -22,29 +22,29 @@ const limits = {
 };
 
 test('shortType strips the plugin namespace', () => {
-  assert.equal(shortType('kei:explorer'), 'explorer');
+  assert.equal(shortType('claudekei:explorer'), 'explorer');
   assert.equal(shortType('general-purpose'), 'general-purpose');
   assert.equal(shortType(undefined), '');
 });
 
 test('aliasPrefix uses known prefixes and falls back to 3 letters', () => {
-  assert.equal(aliasPrefix('kei:frontend-developer'), 'fed');
-  assert.equal(aliasPrefix('kei:oracle'), 'ora');
+  assert.equal(aliasPrefix('claudekei:frontend-developer'), 'fed');
+  assert.equal(aliasPrefix('claudekei:oracle'), 'ora');
   assert.equal(aliasPrefix('my-plugin:reviewer'), 'rev');
 });
 
 test('registerChild assigns incrementing aliases per prefix', () => {
   const state = createState();
-  const a = registerChild(state, { agentId: 'a1', agentType: 'kei:explorer', status: 'idle' }, limits, 1);
-  const b = registerChild(state, { agentId: 'a2', agentType: 'kei:explorer', status: 'idle' }, limits, 2);
-  const c = registerChild(state, { agentId: 'a3', agentType: 'kei:oracle', status: 'idle' }, limits, 3);
+  const a = registerChild(state, { agentId: 'a1', agentType: 'claudekei:explorer', status: 'idle' }, limits, 1);
+  const b = registerChild(state, { agentId: 'a2', agentType: 'claudekei:explorer', status: 'idle' }, limits, 2);
+  const c = registerChild(state, { agentId: 'a3', agentType: 'claudekei:oracle', status: 'idle' }, limits, 3);
   assert.deepEqual([a.alias, b.alias, c.alias], ['exp-1', 'exp-2', 'ora-1']);
 });
 
 test('re-registering an agent id refreshes instead of duplicating', () => {
   const state = createState();
-  registerChild(state, { agentId: 'a1', agentType: 'kei:explorer', status: 'running' }, limits, 1);
-  const again = registerChild(state, { agentId: 'a1', agentType: 'kei:explorer', status: 'idle' }, limits, 5);
+  registerChild(state, { agentId: 'a1', agentType: 'claudekei:explorer', status: 'running' }, limits, 1);
+  const again = registerChild(state, { agentId: 'a1', agentType: 'claudekei:explorer', status: 'idle' }, limits, 5);
   assert.equal(state.children.length, 1);
   assert.equal(again.alias, 'exp-1');
   assert.equal(again.status, 'idle');
@@ -53,19 +53,19 @@ test('re-registering an agent id refreshes instead of duplicating', () => {
 test('settled history is capped per type, oldest evicted first', () => {
   const state = createState();
   for (let i = 1; i <= 3; i++) {
-    registerChild(state, { agentId: `a${i}`, agentType: 'kei:explorer', status: 'idle' }, limits, i);
+    registerChild(state, { agentId: `a${i}`, agentType: 'claudekei:explorer', status: 'idle' }, limits, i);
   }
   assert.deepEqual(state.children.map((c) => c.alias), ['exp-2', 'exp-3']);
   // Counters never reuse an evicted alias.
-  const next = registerChild(state, { agentId: 'a4', agentType: 'kei:explorer', status: 'idle' }, limits, 4);
+  const next = registerChild(state, { agentId: 'a4', agentType: 'claudekei:explorer', status: 'idle' }, limits, 4);
   assert.equal(next.alias, 'exp-4');
 });
 
 test('running children are protected from eviction', () => {
   const state = createState();
-  registerChild(state, { agentId: 'r1', agentType: 'kei:explorer', status: 'running' }, limits, 1);
-  registerChild(state, { agentId: 'r2', agentType: 'kei:explorer', status: 'running' }, limits, 2);
-  registerChild(state, { agentId: 'r3', agentType: 'kei:explorer', status: 'running' }, limits, 3);
+  registerChild(state, { agentId: 'r1', agentType: 'claudekei:explorer', status: 'running' }, limits, 1);
+  registerChild(state, { agentId: 'r2', agentType: 'claudekei:explorer', status: 'running' }, limits, 2);
+  registerChild(state, { agentId: 'r3', agentType: 'claudekei:explorer', status: 'running' }, limits, 3);
   assert.equal(state.children.length, 3);
   touchChild(state, 'r1', 'idle', limits, 4);
   touchChild(state, 'r2', 'idle', limits, 5);
@@ -75,7 +75,7 @@ test('running children are protected from eviction', () => {
 
 test('recordRead respects min lines, dedupes, and caps files', () => {
   const state = createState();
-  registerChild(state, { agentId: 'a1', agentType: 'kei:explorer', status: 'running' }, limits, 1);
+  registerChild(state, { agentId: 'a1', agentType: 'claudekei:explorer', status: 'running' }, limits, 1);
   assert.equal(recordRead(state, 'a1', '/r/small.ts', 3, limits), false);
   recordRead(state, 'a1', '/r/a.ts', 20, limits);
   recordRead(state, 'a1', '/r/b.ts', 30, limits);
@@ -90,8 +90,8 @@ test('recordRead respects min lines, dedupes, and caps files', () => {
 
 test('renderResumable lists most recent first with read context', () => {
   const state = createState();
-  registerChild(state, { agentId: 'a1', agentType: 'kei:explorer', description: 'Search routes', status: 'idle' }, limits, 1);
-  registerChild(state, { agentId: 'a2', agentType: 'kei:oracle', description: 'Review auth', status: 'running' }, limits, 2);
+  registerChild(state, { agentId: 'a1', agentType: 'claudekei:explorer', description: 'Search routes', status: 'idle' }, limits, 1);
+  registerChild(state, { agentId: 'a2', agentType: 'claudekei:oracle', description: 'Review auth', status: 'running' }, limits, 2);
   recordRead(state, 'a1', '/repo/src/router.ts', 120, limits);
   const text = renderResumable(state, { cwd: '/repo' });
   assert.match(text, /### Resumable Sessions/);
@@ -111,30 +111,30 @@ test('isAliasLike only matches known prefixes', () => {
 });
 
 test('checkDelegation enforces planner and business-analyst sets', () => {
-  assert.equal(checkDelegation('orchestrator', 'kei:backend-developer'), null);
-  assert.equal(checkDelegation('planner', 'kei:explorer'), null);
-  assert.match(checkDelegation('planner', 'kei:backend-developer'), /may only delegate/);
-  assert.match(checkDelegation('business-analyst', 'kei:designer'), /may only delegate/);
-  assert.equal(checkDelegation('sprinter', 'kei:oracle'), null);
+  assert.equal(checkDelegation('orchestrator', 'claudekei:backend-developer'), null);
+  assert.equal(checkDelegation('planner', 'claudekei:explorer'), null);
+  assert.match(checkDelegation('planner', 'claudekei:backend-developer'), /may only delegate/);
+  assert.match(checkDelegation('business-analyst', 'claudekei:designer'), /may only delegate/);
+  assert.equal(checkDelegation('sprinter', 'claudekei:oracle'), null);
 });
 
-test('detectModeSwitch recognises kei mode commands only', () => {
-  assert.equal(detectModeSwitch('/kei:plan add auth'), 'planner');
+test('detectModeSwitch recognises claudekei mode commands only', () => {
+  assert.equal(detectModeSwitch('/claudekei:plan add auth'), 'planner');
   assert.equal(detectModeSwitch('  /sprint'), 'sprinter');
-  assert.equal(detectModeSwitch('/kei:analyze market'), 'business-analyst');
-  assert.equal(detectModeSwitch('/kei:orchestrate'), 'orchestrator');
+  assert.equal(detectModeSwitch('/claudekei:analyze market'), 'business-analyst');
+  assert.equal(detectModeSwitch('/claudekei:orchestrate'), 'orchestrator');
   // Bare /plan is Claude Code's built-in plan mode.
   assert.equal(detectModeSwitch('/plan'), null);
-  assert.equal(detectModeSwitch('please /kei:plan'), null);
-  assert.equal(detectModeSwitch('/kei:planx'), null);
+  assert.equal(detectModeSwitch('please /claudekei:plan'), null);
+  assert.equal(detectModeSwitch('/claudekei:planx'), null);
 });
 
-test('effectiveMode prefers explicit mode, then kei main-thread agent', () => {
+test('effectiveMode prefers explicit mode, then claudekei main-thread agent', () => {
   const state = createState();
-  assert.equal(effectiveMode(state, 'kei:orchestrator'), 'orchestrator');
+  assert.equal(effectiveMode(state, 'claudekei:orchestrator'), 'orchestrator');
   assert.equal(effectiveMode(state, 'orchestrator'), 'orchestrator');
   assert.equal(effectiveMode(state, 'other:planner'), null);
   assert.equal(effectiveMode(state, undefined), null);
   state.mode = 'planner';
-  assert.equal(effectiveMode(state, 'kei:orchestrator'), 'planner');
+  assert.equal(effectiveMode(state, 'claudekei:orchestrator'), 'planner');
 });

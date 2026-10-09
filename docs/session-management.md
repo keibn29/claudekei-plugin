@@ -9,7 +9,7 @@ subagent every time. It is enabled by default.
 Claude Code already keeps every subagent resumable: the `Agent` tool returns an
 `agentId`, and `SendMessage` with `to: <agentId>` resumes that subagent with its full
 history. The plugin adds the OpenCode-style ergonomics on top with hooks
-(`hooks/kei.mjs`):
+(`hooks/claudekei.mjs`):
 
 | Hook | What it does |
 |---|---|
@@ -30,7 +30,7 @@ for any other agent type.
 
 | What the agent sends | What happens |
 |---|---|
-| `Agent(subagent_type: "kei:explorer", ...)` | New child, new alias |
+| `Agent(subagent_type: "claudekei:explorer", ...)` | New child, new alias |
 | `SendMessage(to: "exp-1", ...)` | Continues the child behind `exp-1` |
 | `SendMessage(to: "exp-9", ...)` (unknown/evicted) | Denied before running; the reason lists valid aliases |
 | `SendMessage(to: "<raw agent id>", ...)` | Passed through unchanged |
@@ -70,8 +70,8 @@ Reads through `Grep`, `Bash` or MCP tools are not tracked.
 - Only `Agent` calls made from the main thread are aliased (children launched by
   other children are not).
 - Built-in one-shot agents (`Explore`, `Plan`) return no agent id and are not aliased.
-- The reminder/list is injected only when the main thread runs a `kei` primary agent
-  (`settings.json` default, `--agent kei:*`, or a `/kei:*` mode switch). Alias
+- The reminder/list is injected only when the main thread runs a `claudekei` primary agent
+  (`settings.json` default, `--agent claudekei:*`, or a `/claudekei:*` mode switch). Alias
   resolution in `SendMessage` works regardless.
 - Hooks fail open: if a hook errors, the tool call proceeds normally.
 
