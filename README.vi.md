@@ -140,10 +140,13 @@ của session. Chọn trong menu model (Cmd+Shift+I) và menu effort (Cmd+Shift+
 bằng `/model` và `/effort`; app tự nhớ lựa chọn. Nên chọn theo cột "Model mặc định" ở bảng trên (Opus cho orchestrator, planner, business-analyst; Sonnet cho sprinter).
 Plugin không đặt hai giá trị này vì app desktop luôn mở session kèm `--model`/`--effort`,
 và hai cờ này thắng mọi giá trị trong settings.
+`claudekei.jsonc` có khối `primaryAgents` đặt model/effort mặc định cho từng agent chính;
+extension ClaudeKei cho VS Code áp dụng khi bạn chuyển agent chính (app và CLI bỏ qua),
+và `/claudekei:agent <tên>` sẽ nhắc giá trị đã cấu hình.
 
 **Specialist** dùng model mặc định trong bảng trên. Muốn đổi mà không sửa plugin, tạo
 `~/.claude/claudekei.jsonc` (mọi project) hoặc `<project>/.claude/claudekei.jsonc` (riêng một
-project, ưu tiên hơn). Định dạng giống `oh-my-openkei.jsonc` nhưng chỉ có một bảng `presets`
+project, ưu tiên hơn). Định dạng giống `oh-my-openkei.jsonc` nhưng chỉ có một bảng `subAgents`
 (tên agent → `{ "model", "effort" }`), không còn nhiều preset.
 
 Bắt đầu từ file mẫu [`claudekei.jsonc`](claudekei.jsonc): file liệt kê đủ các specialist với
@@ -164,7 +167,11 @@ một project thì copy vào `<project>/.claude/claudekei.jsonc`.
   (hiện là Opus 5.5, Sonnet 5.5, Haiku 5.5). Muốn cố định phiên bản, đặt ví dụ
   `"ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5"` trong mục `"env"` của `~/.claude/settings.json`.
 - `effort`: `low`, `medium`, `high`, `xhigh`, `max`.
-- Mục dành cho 4 agent chính bị bỏ qua.
+- Mục dành cho 4 agent chính trong `subAgents` bị bỏ qua; dùng `primaryAgents` cho các agent này:
+  `{ "orchestrator": { "model": "opus", "effort": "high" }, ... }`, model = alias hoặc model id
+  đầy đủ, effort tùy chọn (bỏ qua = mặc định của model). Gộp user/project như `subAgents`;
+  chỉ extension ClaudeKei cho VS Code áp dụng.
+- `presets` là tên cũ (đã deprecated) của `subAgents`: vẫn được đọc, kèm cảnh báo.
 
 Chi tiết: [docs/configuration.md](docs/configuration.md#config-file-claudekeijsonc).
 

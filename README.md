@@ -142,11 +142,14 @@ menu (Cmd+Shift+E), or with `/model` and `/effort`; the app remembers your choic
 in the table (Opus for orchestrator, planner and business-analyst, Sonnet for sprinter) are
 what we recommend picking. The plugin does not set these: the desktop app
 starts every session with explicit `--model`/`--effort`, which beat any settings value.
+`claudekei.jsonc` has a `primaryAgents` block with a default model/effort per primary agent;
+the ClaudeKei VS Code extension applies it when you switch the main agent (the app and CLI
+ignore it), and `/claudekei:agent <name>` mentions the configured values.
 
 **Specialists** use the defaults in the table above. To change them without editing the
 plugin, create `~/.claude/claudekei.jsonc` (all projects) or
 `<project>/.claude/claudekei.jsonc` (one project, wins per field). It is like
-`oh-my-openkei.jsonc` with a single `presets` map (agent → `{ "model", "effort" }`), no named presets.
+`oh-my-openkei.jsonc` with a single `subAgents` map (agent → `{ "model", "effort" }`), no named presets.
 
 Start from the template [`claudekei.jsonc`](claudekei.jsonc): it lists every specialist with
 its default model/effort, so an unedited copy changes nothing. Copy it (skipped if you
@@ -165,7 +168,11 @@ copy it to `<project>/.claude/claudekei.jsonc` instead.
   (today Opus 5.5, Sonnet 5.5, Haiku 5.5). To pin one, set e.g.
   `"ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5"` under `"env"` in `~/.claude/settings.json`.
 - `effort`: `low`, `medium`, `high`, `xhigh`, `max`.
-- Entries for the four primary agents are ignored.
+- Entries for the four primary agents are ignored in `subAgents`; use `primaryAgents` for those:
+  `{ "orchestrator": { "model": "opus", "effort": "high" }, ... }`, model = alias or full
+  model id, effort optional (omit = the model's default). Same user/project merge as `subAgents`;
+  only the ClaudeKei VS Code extension applies it.
+- `presets` is the deprecated former name of `subAgents`: still read, with a warning.
 
 Details: [docs/configuration.md](docs/configuration.md#config-file-claudekeijsonc).
 

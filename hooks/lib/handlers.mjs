@@ -100,12 +100,29 @@ function projectOverride(projectDir) {
   return null;
 }
 
+// One sentence about the model/effort claudekei.jsonc configures for a primary agent.
+// Hooks cannot apply it to the main thread: the ClaudeKei VS Code extension does.
+function primaryPresetNote(agent, primaryAgents) {
+  const preset = primaryAgents?.[agent];
+  if (!preset?.model && !preset?.effort) return '';
+  const parts = [preset.model && `model ${preset.model}`, preset.effort && `effort ${preset.effort}`];
+  return (
+    ` claudekei.jsonc primaryAgents.${agent}: ${parts.filter(Boolean).join(', ')}, applied by the ` +
+    'ClaudeKei VS Code extension; elsewhere the model picked in the app or with /model and /effort wins.'
+  );
+}
+
+// claudekei.jsonc entries that were ignored, so a typo shows up where users look.
+function configWarningNote(warnings) {
+  return warnings?.length ? ` Ignored in claudekei.jsonc: ${warnings.join('; ')}.` : '';
+}
+
 // `/claudekei:agent <name>` sets the default agent for NEW sessions, in this
 // project or (with "agentScope": "global") in all projects. The hook does the
 // write itself so no model turn is spent. Model and effort stay with the app's
 // pickers: the desktop app starts every session with explicit --model/--effort
 // flags, which beat any settings value.
-function onAgentCommand(command, input, { store, agentScope }) {
+function onAgentCommand(command, input, { store, agentScope, primaryAgents, warnings }) {
   const projectDir = process.env.CLAUDE_PROJECT_DIR || input.cwd;
   const global = agentScope === 'global';
   const file = global ? userSettingsPath() : projectSettingsPaths(projectDir)[0];
@@ -124,8 +141,10 @@ function onAgentCommand(command, input, { store, agentScope }) {
     if (command.action === 'show') {
       const current = readAgent(file);
       const where = current ? `set in ${label}` : `not set in ${label}`;
+      const bare = (current ?? `${PLUGIN_NAME}:orchestrator`).slice(PLUGIN_NAME.length + 1);
       return block(
-        `Default agent for new sessions ${scope}: ${current ?? fallback} (${where}).${overrideNote} ${AGENT_USAGE}`,
+        `Default agent for new sessions ${scope}: ${current ?? fallback} (${where}).${overrideNote}` +
+          `${primaryPresetNote(bare, primaryAgents)}${configWarningNote(warnings)} ${AGENT_USAGE}`,
       );
     }
     const agent = command.action === 'reset' ? null : `${PLUGIN_NAME}:${command.agent}`;
@@ -134,7 +153,9 @@ function onAgentCommand(command, input, { store, agentScope }) {
     return block(
       `Default agent for new sessions ${scope} is now ${agent ?? fallback} (saved to ${label}). ` +
         'Start a new session (Cmd+N in the desktop app) to use it; pick its model and effort in ' +
-        `the app as usual. This conversation keeps its current agent.${overrideNote}`,
+        `the app as usual. This conversation keeps its current agent.${overrideNote}` +
+        (command.action === 'set' ? primaryPresetNote(command.agent, primaryAgents) : '') +
+        configWarningNote(warnings),
     );
   } catch (error) {
     return block(

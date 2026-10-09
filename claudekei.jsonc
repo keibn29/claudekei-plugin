@@ -9,10 +9,8 @@
 //         "env" in ~/.claude/settings.json)
 // effort: low | medium | high | xhigh | max   (omit to use the model's default)
 {
-  // Specialists only; applied to every delegation, from the next one on. Primary agents
-  // (orchestrator, planner, sprinter, business-analyst) run on the model and effort
-  // picked in the app (or /model, /effort), so they are not configured here.
-  "presets": {
+  // Specialists; applied to every delegation, from the next one on.
+  "subAgents": {
     "explorer":           { "model": "haiku",  "effort": "low" },
     "librarian":          { "model": "haiku",  "effort": "low" },
     "oracle":             { "model": "opus",   "effort": "high" },
@@ -22,14 +20,27 @@
     "backend-developer":  { "model": "sonnet", "effort": "high" },
   },
 
+  // Primary agents (the main thread). Hooks cannot change a running session's model, so
+  // in the Claude Code app/CLI the model chosen via the app or /model and /effort wins and
+  // this block has no effect there. The ClaudeKei VS Code extension reads it and applies
+  // the model/effort when you switch the session's main agent.
+  // model: an alias above or a full model id (e.g. "claude-opus-5-5").
+  // effort: low | medium | high | xhigh | max (omit to use the model's default).
+  "primaryAgents": {
+    "orchestrator":     { "model": "opus",   "effort": "high" },
+    "planner":          { "model": "opus",   "effort": "xhigh" },
+    "sprinter":         { "model": "sonnet", "effort": "high" },
+    "business-analyst": { "model": "opus",   "effort": "xhigh" },
+  },
+
   // Where /claudekei:agent saves the default agent for new sessions:
   //   "project"  .claude/settings.local.json in the current project (creates .claude/ there)
   //   "global"   ~/.claude/settings.json, for all projects (a project-level "agent" still wins)
-  "agentScope": "project",
+  "agentScope": "global",
 
   // Resumable child sessions (same as the KEI_* env vars; a set env var wins).
   "sessionManager": {
-    "maxSessionsPerAgent": 1,  // settled sessions remembered per specialist (1-10)
+    "maxSessionsPerAgent": 3,  // settled sessions remembered per specialist (1-10)
     "readContextMinLines": 10, // min lines read before a file is listed (0-1000)
     "readContextMaxFiles": 8,  // files listed per child, 0 hides the list (0-50)
     "phaseReminder": true,     // workflow reminder before each prompt

@@ -13,10 +13,15 @@ try {
   const raw = readFileSync(0, 'utf8');
   const input = raw.trim() ? JSON.parse(raw) : null;
   const config = loadUserConfig(process.env.CLAUDE_PROJECT_DIR || input?.cwd);
+  for (const warning of config.warnings) {
+    process.stderr.write(`[claudekei] claudekei.jsonc: ${warning}\n`);
+  }
   const output = handle(input, {
     store,
     limits: loadLimits(config.sessionManager),
     agents: config.agents,
+    primaryAgents: config.primaryAgents,
+    warnings: config.warnings,
     agentScope: config.agentScope,
   });
   if (output) process.stdout.write(JSON.stringify(output));

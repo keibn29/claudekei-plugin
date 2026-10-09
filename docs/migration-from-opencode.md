@@ -34,6 +34,6 @@
 | `apply-patch`, `json-error-recovery`, `delegate-task-retry` | Worked around non-Claude tool-call quirks |
 | `chat-headers`, image hook | OpenCode-specific |
 | `filter-available-skills` | Replaced by `skills:` preloading |
-| `auto-update-checker`, CLI installer, config schema | Handled by the plugin marketplace; the active `oh-my-openkei.jsonc` preset maps to the single `presets` map in `claudekei.jsonc` (models/effort/sessionManager) |
+| `auto-update-checker`, CLI installer, config schema | Handled by the plugin marketplace; the active `oh-my-openkei.jsonc` preset maps to the single `subAgents` map in `claudekei.jsonc` (models/effort/sessionManager) |
 | `webfetch` (smartfetch), `ast_grep_*` tools | Use built-in `WebFetch`; add an ast-grep MCP server if you need structural search |
 | `disabled_agents`, `displayName`, prompt override files | Edit or delete files in `agents/` |

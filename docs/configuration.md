@@ -5,9 +5,10 @@ environment variables), claudekei reads one optional file: `claudekei.jsonc`.
 
 ## Config file (`claudekei.jsonc`)
 
-Like `oh-my-openkei.jsonc`, but with one `presets` map (no named presets) and OpenCode's
+Like `oh-my-openkei.jsonc`, but with one `subAgents` map (no named presets) and OpenCode's
 `variant` renamed to Claude Code's `effort`. This optional JSONC file (comments and trailing
-commas allowed) changes specialist models/effort and session limits without forking the plugin:
+commas allowed) changes specialist models/effort, sets default models for the primary agents
+(`primaryAgents`) and tunes session limits without forking the plugin:
 
 | File | Scope |
 |---|---|
@@ -19,10 +20,14 @@ specialist at its default (a test keeps it in sync with `agents/*.md`).
 
 ```jsonc
 {
-  "presets": {
+  "subAgents": {
     "oracle":   { "model": "opus",   "effort": "xhigh" },
     "debugger": { "model": "sonnet", "effort": "xhigh" },
     "explorer": { "model": "haiku" },
+  },
+  "primaryAgents": {
+    "orchestrator":     { "model": "opus" },
+    "sprinter":         { "model": "sonnet", "effort": "high" },
   },
   "sessionManager": {
     "maxSessionsPerAgent": 1,
@@ -35,8 +40,10 @@ specialist at its default (a test keeps it in sync with `agents/*.md`).
 
 | Option | Values |
 |---|---|
-| `presets.<agent>.model` | `opus`, `sonnet`, `haiku`, `fable` (other values are ignored) |
-| `presets.<agent>.effort` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `subAgents.<agent>.model` | `opus`, `sonnet`, `haiku`, `fable` (other values are ignored) |
+| `subAgents.<agent>.effort` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `primaryAgents.<agent>.model` | `opus`, `sonnet`, `haiku`, `fable`, or a full model id such as `claude-opus-5-5`. `<agent>` is `orchestrator`, `planner`, `sprinter` or `business-analyst` |
+| `primaryAgents.<agent>.effort` | `low`, `medium`, `high`, `xhigh`, `max`; omit to use the model's default |
 | `agentScope` | Where `/claudekei:agent` saves: `"project"` (default, `.claude/settings.local.json`) or `"global"` (`~/.claude/settings.json`) |
 | `sessionManager.*` | Same as the `KEI_*` variables below; a set env variable wins |
 
@@ -46,15 +53,36 @@ edits apply immediately, with no plugin update or new session.
 
 Limits:
 
-- Only specialists. Primary agents (orchestrator, planner, sprinter, business-analyst)
-  are ignored here; they run on the session's model and effort: pick them in the app (model menu Cmd+Shift+I,
-  effort menu Cmd+Shift+E) or with `/model` and `/effort`. The desktop app starts every
-  session with explicit `--model`/`--effort` flags, which beat any settings value, so the
-  plugin does not try to set them.
+- `subAgents` is for specialists only. A primary-agent name there is ignored.
+- `presets` is the deprecated former name of `subAgents`. It is still read, with a warning
+  (`presets` is deprecated, rename to `subAgents`). If a file has both, a `subAgents` entry
+  replaces the `presets` entry of the same agent; user and project files still merge per field.
 
 - If the orchestrator passes `model`/`effort` itself (e.g. you asked for it), that wins.
 - A child resumed with `SendMessage` keeps the model it started with.
 - Per-agent `skills`/`mcps` lists stay in the agent files (`skills:` / `tools:`).
+
+### Primary agents (`primaryAgents`)
+
+`primaryAgents` holds the default model and effort for each primary agent (orchestrator,
+planner, sprinter, business-analyst). Hooks cannot change the main thread's model, so
+the plugin itself never applies it and never writes model/effort into `settings.json`:
+
+- In the Claude Code app or CLI, the model you pick in the app or with `/model` and
+  `/effort` wins (the desktop app starts every session with explicit `--model`/`--effort`
+  flags). This block has no effect there; `/claudekei:agent <name>` only mentions the
+  configured values.
+- The ClaudeKei VS Code extension reads `primaryAgents` and applies the model/effort when
+  you switch the session's main agent.
+
+User and project files merge per field, project wins, like `subAgents`. Invalid entries are
+ignored with a warning (printed by the hook on stderr and appended to the
+`/claudekei:agent` reply). This applies to `subAgents` (and the deprecated `presets`) too (a bad `model`/`effort` or a
+non-object entry) and to `primaryAgents` (unknown agent names, a non-object entry, a `model`
+that is neither an alias nor a model id, an `effort` outside the list). The template defaults to
+each agent's `model:` frontmatter; its efforts (orchestrator high, planner xhigh, sprinter high,
+business-analyst xhigh) live only in `primaryAgents`, because an `effort:` in a primary agent's
+frontmatter would override the session effort and break `/effort`.
 
 ## Models and effort per agent (defaults)
 
@@ -72,7 +100,7 @@ To change them, edit the files in your clone, bump `version` in
 `.claude-plugin/plugin.json`, then run `claude plugin marketplace update claudekei`
 and `claude plugin update claudekei@claudekei`. While iterating, `claude --plugin-dir
 <clone>` plus `/reload-plugins` picks up edits directly. Primary agents (`orchestrator`, `planner`, `sprinter`, `business-analyst`)
-leave `model` unset, so they use whatever you pick with `/model`.
+set `model` there too; to change those per user or project, use `primaryAgents` (see above).
 
 Global overrides that Claude Code itself supports:
 

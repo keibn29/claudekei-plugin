@@ -355,6 +355,48 @@ test('/claudekei:agent writes settings.local.json, keeps other keys, and blocks 
   assert.deepEqual(JSON.parse(readFileSync(file, 'utf8')), { permissions: { allow: ['Bash(ls)'] } });
 });
 
+test('/claudekei:agent mentions the primaryAgents model/effort configured for the agent', () => {
+  const home = join(DATA, 'pa-home');
+  const project = join(DATA, 'pa-project');
+  mkdirSync(join(home, '.claude'), { recursive: true });
+  mkdirSync(join(project, '.claude'), { recursive: true });
+  writeFileSync(
+    join(home, '.claude', 'claudekei.jsonc'),
+    '{ "primaryAgents": { "planner": { "model": "opus", "effort": "high" }, "sprinter": { "model": "bad model" } } }',
+  );
+  const env = { HOME: home, CLAUDE_PROJECT_DIR: project };
+  const prompt = (text) =>
+    run(base(newSession(), { hook_event_name: 'UserPromptSubmit', prompt: text }), env);
+
+  const set = prompt('/claudekei:agent plan');
+  assert.match(set.reason, /primaryAgents\.planner: model opus, effort high/);
+  assert.match(prompt('/claudekei:agent').reason, /primaryAgents\.planner: model opus, effort high/);
+  assert.doesNotMatch(prompt('/claudekei:agent sprinter').reason, /primaryAgents\.[\w-]+: /);
+  assert.doesNotMatch(prompt('/claudekei:agent reset').reason, /primaryAgents\.[\w-]+: /);
+});
+
+test('/claudekei:agent appends claudekei.jsonc warnings to its reply', () => {
+  const home = join(DATA, 'warn-home');
+  const project = join(DATA, 'warn-project');
+  mkdirSync(join(home, '.claude'), { recursive: true });
+  mkdirSync(join(project, '.claude'), { recursive: true });
+  writeFileSync(
+    join(home, '.claude', 'claudekei.jsonc'),
+    '{ "presets": { "oracle": { "effort": "turbo" } }, "primaryAgents": { "ghost": {}, "planner": { "model": "a b" } } }',
+  );
+  const env = { HOME: home, CLAUDE_PROJECT_DIR: project };
+  const prompt = (text) =>
+    run(base(newSession(), { hook_event_name: 'UserPromptSubmit', prompt: text }), env);
+
+  for (const text of ['/claudekei:agent plan', '/claudekei:agent', '/claudekei:agent reset']) {
+    const { reason } = prompt(text);
+    assert.match(reason, /Ignored in claudekei\.jsonc: .*presets\.oracle\.effort "turbo" ignored/, text);
+    assert.match(reason, /`presets` is deprecated, rename to `subAgents`/, text);
+    assert.match(reason, /primaryAgents\.ghost is not a primary agent/, text);
+    assert.match(reason, /primaryAgents\.planner\.model "a b" ignored/, text);
+  }
+});
+
 test('/claudekei:agent never overwrites an unreadable settings file', () => {
   const project = join(DATA, 'broken');
   mkdirSync(join(project, '.claude'), { recursive: true });
@@ -374,7 +416,7 @@ test('PreToolUse Agent applies claudekei.jsonc model/effort, delegation rules st
   mkdirSync(join(home, '.claude'), { recursive: true });
   writeFileSync(
     join(home, '.claude', 'claudekei.jsonc'),
-    '{ "presets": { "explorer": { "model": "sonnet", "effort": "low" }, "backend-developer": { "model": "opus" } } }',
+    '{ "subAgents": { "explorer": { "model": "sonnet", "effort": "low" }, "backend-developer": { "model": "opus" } } }',
   );
   const env = { HOME: home, CLAUDE_PROJECT_DIR: join(DATA, 'cfg-project') };
   const s = newSession();
