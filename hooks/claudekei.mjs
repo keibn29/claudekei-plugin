@@ -7,11 +7,17 @@ import { readFileSync } from 'node:fs';
 import { loadLimits } from './lib/config.mjs';
 import { handle } from './lib/handlers.mjs';
 import * as store from './lib/store.mjs';
+import { loadUserConfig } from './lib/user-config.mjs';
 
 try {
   const raw = readFileSync(0, 'utf8');
   const input = raw.trim() ? JSON.parse(raw) : null;
-  const output = handle(input, { store, limits: loadLimits() });
+  const config = loadUserConfig(process.env.CLAUDE_PROJECT_DIR || input?.cwd);
+  const output = handle(input, {
+    store,
+    limits: loadLimits(config.sessionManager),
+    agents: config.agents,
+  });
   if (output) process.stdout.write(JSON.stringify(output));
 } catch (error) {
   process.stderr.write(`[claudekei] hook error: ${error?.message ?? error}\n`);

@@ -101,6 +101,26 @@ no argument shows the current value). The hook saves it to the project's
 The main-thread model is whatever you pick in Claude Code (`/model`); Opus is recommended
 for orchestrator and planner.
 
+To change specialist models/effort without editing the plugin, create
+`~/.claude/claudekei.jsonc` (or `<project>/.claude/claudekei.jsonc`), in the same shape as
+`oh-my-openkei.jsonc`:
+
+```jsonc
+{
+  "preset": "default",
+  "presets": {
+    "default": {
+      "oracle": { "model": "opus", "variant": "xhigh" },
+      "explorer": { "model": "haiku" },
+    },
+  },
+}
+```
+
+Specialist entries apply from the next delegation; primary agents (`orchestrator`,
+`planner`, ...) get their `model`/`effort` as the new-session default when you run
+`/claudekei:agent <name>`. Details: [docs/configuration.md](docs/configuration.md#config-file-claudekeijsonc).
+
 ## Session reuse
 
 ```text

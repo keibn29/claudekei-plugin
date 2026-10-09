@@ -100,6 +100,24 @@ project mà không tốn lượt model; sau đó mở session mới (Cmd+N).
 Model của luồng chính là model bạn chọn trong Claude Code (`/model`); nên dùng Opus cho
 orchestrator và planner.
 
+Đổi model/effort của specialist mà không cần sửa plugin: tạo `~/.claude/claudekei.jsonc`
+(hoặc `<project>/.claude/claudekei.jsonc`), định dạng giống `oh-my-openkei.jsonc`:
+
+```jsonc
+{
+  "preset": "default",
+  "presets": {
+    "default": {
+      "oracle": { "model": "opus", "variant": "xhigh" },
+      "explorer": { "model": "haiku" },
+    },
+  },
+}
+```
+
+Specialist có hiệu lực ngay ở lần giao việc tiếp theo; agent chính (`orchestrator`, `planner`…)
+nhận `model`/`effort` làm mặc định cho session mới khi bạn chạy `/claudekei:agent <tên>`. Chi tiết: [docs/configuration.md](docs/configuration.md#config-file-claudekeijsonc).
+
 ## Tái sử dụng session
 
 ```text

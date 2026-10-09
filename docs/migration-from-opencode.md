@@ -32,10 +32,10 @@
 
 | Feature | Why |
 |---|---|
-| Mixed providers per agent, model fallback chains (`foreground-fallback`) | Claude Code runs Anthropic models; no per-request model hook. See [configuration](configuration.md#third-party-models-unsupported-by-anthropic) |
+| Mixed providers per agent, model fallback chains (`foreground-fallback`) | Claude Code runs Anthropic models; `claudekei.jsonc` only picks among `opus`/`sonnet`/`haiku`/`fable`. See [configuration](configuration.md#third-party-models-unsupported-by-anthropic) |
 | `apply-patch`, `json-error-recovery`, `delegate-task-retry` | Worked around non-Claude tool-call quirks |
 | `chat-headers`, image hook | OpenCode-specific |
 | `filter-available-skills` | Replaced by `skills:` preloading |
-| `auto-update-checker`, CLI installer, config schema/presets | Handled by the plugin marketplace and agent frontmatter |
+| `auto-update-checker`, CLI installer, config schema | Handled by the plugin marketplace; `oh-my-openkei.jsonc` presets map to `claudekei.jsonc` (models/effort/sessionManager) |
 | `webfetch` (smartfetch), `ast_grep_*` tools | Use built-in `WebFetch`; add an ast-grep MCP server if you need structural search |
 | `disabled_agents`, `displayName`, prompt override files | Edit or delete files in `agents/` |

@@ -49,21 +49,29 @@ export const PHASE_REMINDER_TEXT = `!IMPORTANT! Recall the workflow rules:
 Understand → choose the best parallelized path based on your capabilities and agents delegation rules → recall session reuse rules → execute → verify.
 If delegating, launch the specialist in the same turn you mention it !END!`;
 
+// Values the Agent tool accepts for its `model` and `effort` parameters.
+export const MODEL_ALIASES = new Set(['opus', 'sonnet', 'haiku', 'fable']);
+export const EFFORT_LEVELS = new Set(['low', 'medium', 'high', 'xhigh', 'max']);
+
 export const STATE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-function intFromEnv(name, fallback, min, max) {
-  const raw = process.env[name];
-  if (raw === undefined || raw === '') return fallback;
-  const value = Number.parseInt(raw, 10);
+// Environment variable first, then the config file value, then the default.
+function intSetting(envName, fileValue, fallback, min, max) {
+  const raw = process.env[envName];
+  const value =
+    raw !== undefined && raw !== '' ? Number.parseInt(raw, 10) : Number(fileValue ?? fallback);
   if (!Number.isFinite(value)) return fallback;
-  return Math.min(max, Math.max(min, value));
+  return Math.min(max, Math.max(min, Math.trunc(value)));
 }
 
-export function loadLimits() {
+/** `fileSettings` is the `sessionManager` object from claudekei.jsonc. */
+export function loadLimits(fileSettings = {}) {
+  const file = fileSettings;
+  const reminderEnv = process.env.KEI_PHASE_REMINDER;
   return {
-    maxSessionsPerAgent: intFromEnv('KEI_MAX_SESSIONS_PER_AGENT', 2, 1, 10),
-    readContextMinLines: intFromEnv('KEI_READ_CONTEXT_MIN_LINES', 10, 0, 1000),
-    readContextMaxFiles: intFromEnv('KEI_READ_CONTEXT_MAX_FILES', 8, 0, 50),
-    phaseReminder: process.env.KEI_PHASE_REMINDER !== '0',
+    maxSessionsPerAgent: intSetting('KEI_MAX_SESSIONS_PER_AGENT', file.maxSessionsPerAgent, 2, 1, 10),
+    readContextMinLines: intSetting('KEI_READ_CONTEXT_MIN_LINES', file.readContextMinLines, 10, 0, 1000),
+    readContextMaxFiles: intSetting('KEI_READ_CONTEXT_MAX_FILES', file.readContextMaxFiles, 8, 0, 50),
+    phaseReminder: reminderEnv ? reminderEnv !== '0' : file.phaseReminder !== false,
   };
 }

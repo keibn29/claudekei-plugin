@@ -8,6 +8,7 @@
 import {
   ALIAS_PREFIXES,
   DELEGATE_SETS,
+  MODEL_ALIASES,
   MODE_COMMANDS,
   PLUGIN_NAME,
   PRIMARY_AGENTS,
@@ -209,4 +210,22 @@ export function parseAgentCommand(prompt) {
   const name = shortType(arg);
   const agent = PRIMARY_AGENTS.has(name) ? name : MODE_COMMANDS[name];
   return agent ? { action: 'set', agent } : { action: 'invalid', arg: match[1] };
+}
+
+/**
+ * Applies claudekei.jsonc `model`/`effort` to an Agent call for one of this
+ * plugin's agents. Values the caller passed explicitly win. Returns the
+ * updated tool input, or null when nothing changes.
+ */
+export function applyAgentConfig(toolInput, agents) {
+  const type = toolInput?.subagent_type;
+  if (typeof type !== 'string' || !type.startsWith(`${PLUGIN_NAME}:`)) return null;
+  const entry = agents?.[shortType(type)];
+  if (!entry) return null;
+  const updated = { ...toolInput };
+  const model = entry.model?.toLowerCase();
+  if (MODEL_ALIASES.has(model) && !toolInput.model) updated.model = model;
+  if (entry.effort && !toolInput.effort) updated.effort = entry.effort;
+  const changed = updated.model !== toolInput.model || updated.effort !== toolInput.effort;
+  return changed ? updated : null;
 }

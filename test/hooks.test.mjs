@@ -251,7 +251,7 @@ test('/claudekei:agent writes settings.local.json, keeps other keys, and blocks 
     agent: 'claudekei:planner',
   });
 
-  assert.match(prompt('/claudekei:agent').reason, /claudekei:planner \(set in/);
+  assert.match(prompt('/claudekei:agent').reason, /new sessions: claudekei:planner, model app default/);
   assert.match(prompt('/claudekei:agent oracle').reason, /Unknown agent "oracle"/);
 
   prompt('/claudekei:agent reset');
@@ -270,4 +270,69 @@ test('/claudekei:agent never overwrites an unreadable settings file', () => {
   assert.equal(out.decision, 'block');
   assert.match(out.reason, /Could not update/);
   assert.equal(readFileSync(file, 'utf8'), '{ not json');
+});
+
+test('PreToolUse Agent applies claudekei.jsonc model/effort, delegation rules still first', () => {
+  const home = join(DATA, 'cfg-home');
+  mkdirSync(join(home, '.claude'), { recursive: true });
+  writeFileSync(
+    join(home, '.claude', 'claudekei.jsonc'),
+    '{ "agents": { "explorer": { "model": "sonnet", "variant": "low" }, "backend-developer": { "model": "opus" } } }',
+  );
+  const env = { HOME: home, CLAUDE_PROJECT_DIR: join(DATA, 'cfg-project') };
+  const s = newSession();
+  const call = (subagentType, extra = {}) =>
+    run(
+      base(s, {
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Agent',
+        tool_input: { subagent_type: subagentType, prompt: 'x', description: 'y', ...extra },
+      }),
+      env,
+    );
+
+  const out = call('claudekei:explorer');
+  assert.equal(out.hookSpecificOutput.permissionDecision, 'allow');
+  assert.equal(out.hookSpecificOutput.updatedInput.model, 'sonnet');
+  assert.equal(out.hookSpecificOutput.updatedInput.effort, 'low');
+  assert.equal(out.hookSpecificOutput.updatedInput.prompt, 'x');
+  assert.equal(call('claudekei:designer'), null);
+
+  run({ session_id: s, hook_event_name: 'UserPromptSubmit', prompt: '/claudekei:plan x' }, env);
+  assert.equal(call('claudekei:backend-developer').hookSpecificOutput.permissionDecision, 'deny');
+});
+
+test('/claudekei:agent writes model/effort defaults from claudekei.jsonc and never removes a hand-set model', () => {
+  const home = join(DATA, 'defaults-home');
+  const project = join(DATA, 'defaults-project');
+  mkdirSync(join(home, '.claude'), { recursive: true });
+  writeFileSync(
+    join(home, '.claude', 'claudekei.jsonc'),
+    `{
+      "presets": { "default": { "planner": { "model": "opus", "variant": "max" } } },
+      "preset": "default",
+      "agents": { "orchestrator": { "model": "claude-opus-5-5", "effort": "high" } },
+    }`,
+  );
+  const file = join(project, '.claude', 'settings.local.json');
+  const env = { HOME: home, CLAUDE_PROJECT_DIR: project };
+  const prompt = (text) =>
+    run(base(newSession(), { hook_event_name: 'UserPromptSubmit', prompt: text }), env);
+  const settings = () => JSON.parse(readFileSync(file, 'utf8'));
+
+  assert.match(prompt('/claudekei:agent planner').reason, /model opus, effort xhigh \(effort max/);
+  assert.deepEqual(settings(), { agent: 'claudekei:planner', model: 'opus', effortLevel: 'xhigh' });
+
+  // Sprinter has no config entry: the plugin-written model/effort are removed.
+  prompt('/claudekei:agent sprinter');
+  assert.deepEqual(settings(), { agent: 'claudekei:sprinter' });
+
+  // reset applies the orchestrator entry.
+  prompt('/claudekei:agent reset');
+  assert.deepEqual(settings(), { model: 'claude-opus-5-5', effortLevel: 'high' });
+
+  // A model the user set by hand is never removed.
+  writeFileSync(file, JSON.stringify({ model: 'sonnet' }));
+  prompt('/claudekei:agent sprinter');
+  assert.deepEqual(settings(), { model: 'sonnet', agent: 'claudekei:sprinter' });
 });

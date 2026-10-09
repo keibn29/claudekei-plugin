@@ -21,11 +21,41 @@ import { createState } from './sessions.mjs';
 const LOCK_STALE_MS = 5_000;
 const LOCK_TIMEOUT_MS = 3_000;
 
-export function stateDir() {
-  const base =
+function dataDir() {
+  return (
     process.env.CLAUDE_PLUGIN_DATA ||
-    join(homedir(), '.claude', 'plugins', 'data', 'claudekei');
-  return join(base, 'sessions');
+    join(homedir(), '.claude', 'plugins', 'data', 'claudekei')
+  );
+}
+
+export function stateDir() {
+  return join(dataDir(), 'sessions');
+}
+
+// Values /claudekei:agent last wrote into each project's settings.local.json.
+const ownedFile = () => join(dataDir(), 'project-defaults.json');
+
+function readOwnedMap() {
+  try {
+    const parsed = JSON.parse(readFileSync(ownedFile(), 'utf8'));
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function readOwned(projectDir) {
+  return readOwnedMap()[projectDir] ?? {};
+}
+
+export function writeOwned(projectDir, owned) {
+  const map = readOwnedMap();
+  if (Object.keys(owned).length > 0) map[projectDir] = owned;
+  else delete map[projectDir];
+  mkdirSync(dataDir(), { recursive: true });
+  const tmp = `${ownedFile()}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify(map));
+  renameSync(tmp, ownedFile());
 }
 
 function safeId(sessionId) {

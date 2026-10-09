@@ -9,8 +9,9 @@ import {
   PRIMARY_AGENTS,
   REMINDER_AGENTS,
 } from './config.mjs';
-import { readAgent, writeAgent } from './project-settings.mjs';
+import { readDefaults, writeDefaults } from './project-settings.mjs';
 import {
+  applyAgentConfig,
   checkDelegation,
   detectModeSwitch,
   effectiveMode,
@@ -65,34 +66,44 @@ function onSessionStart(input, { store, limits }) {
 
 const AGENT_USAGE = `Usage: /${PLUGIN_NAME}:agent <${[...PRIMARY_AGENTS].join('|')}|reset>`;
 
-// `/claudekei:agent <name>` sets the default agent for NEW sessions in this
-// project. The hook does the write itself so no model turn is spent.
-function onAgentCommand(command, input) {
+// The `effortLevel` setting stops at xhigh; `max` only exists per call.
+const sessionEffort = (effort) => (effort === 'max' ? 'xhigh' : effort);
+
+function describeDefaults({ agent, model, effortLevel }) {
+  const parts = [agent ?? `${PLUGIN_NAME}:orchestrator (plugin default)`];
+  parts.push(`model ${model ?? 'app default'}`);
+  parts.push(`effort ${effortLevel ?? 'app default'}`);
+  return parts.join(', ');
+}
+
+// `/claudekei:agent <name>` sets the defaults for NEW sessions in this project:
+// the main-thread agent plus its `model`/`effort` from claudekei.jsonc. They are
+// only defaults; the app's model picker and /model still win. The hook does the
+// write itself so no model turn is spent.
+function onAgentCommand(command, input, { store, agents = {} }) {
   const projectDir = process.env.CLAUDE_PROJECT_DIR || input.cwd;
   const file = '.claude/settings.local.json';
-  const fallback = `${PLUGIN_NAME}:orchestrator (plugin default)`;
   try {
     if (command.action === 'invalid') {
       return block(`Unknown agent "${command.arg}". ${AGENT_USAGE}`);
     }
     if (command.action === 'show') {
-      const current = readAgent(projectDir);
-      const where = current ? `set in ${file}` : 'no override in this project';
-      return block(`Default agent for new sessions: ${current ?? fallback} (${where}). ${AGENT_USAGE}`);
+      return block(`Defaults for new sessions: ${describeDefaults(readDefaults(projectDir))}. ${AGENT_USAGE}`);
     }
-    if (command.action === 'reset') {
-      writeAgent(projectDir, null);
-      return block(
-        `Removed the agent override from ${file}. New sessions in this project use ${fallback}. ` +
-          'Start a new session (Cmd+N in the desktop app) to use it.',
-      );
-    }
-    const agent = `${PLUGIN_NAME}:${command.agent}`;
-    writeAgent(projectDir, agent);
+    const name = command.action === 'reset' ? 'orchestrator' : command.agent;
+    const entry = agents[name] ?? {};
+    const values = {
+      agent: command.action === 'reset' ? null : `${PLUGIN_NAME}:${name}`,
+      model: entry.model,
+      effortLevel: sessionEffort(entry.effort),
+    };
+    const owned = writeDefaults(projectDir, values, store.readOwned(projectDir));
+    store.writeOwned(projectDir, owned);
+    const note = entry.effort === 'max' ? ' (effort max is per-call only, so new sessions start at xhigh)' : '';
     return block(
-      `Default agent for new sessions in this project is now ${agent} (saved to ${file}). ` +
-        'Start a new session (Cmd+N in the desktop app) to use it. ' +
-        'This conversation keeps its current agent.',
+      `Defaults for new sessions in this project: ${describeDefaults(readDefaults(projectDir))}${note}. ` +
+        `Saved to ${file}. Start a new session (Cmd+N in the desktop app) to use them; ` +
+        'the model picker can still change the model. This conversation keeps its current agent.',
     );
   } catch (error) {
     return block(
@@ -102,10 +113,11 @@ function onAgentCommand(command, input) {
   }
 }
 
-function onUserPrompt(input, { store, limits }) {
+function onUserPrompt(input, deps) {
+  const { store, limits } = deps;
   if (!isMainThread(input)) return null;
   const agentCommand = parseAgentCommand(input.prompt);
-  if (agentCommand) return onAgentCommand(agentCommand, input);
+  if (agentCommand) return onAgentCommand(agentCommand, input, deps);
   const switched = detectModeSwitch(input.prompt);
   const { state } = store.withState(input.session_id, (s) => {
     if (!switched || s.mode === switched) return false;
@@ -125,13 +137,27 @@ function onUserPrompt(input, { store, limits }) {
   return context('UserPromptSubmit', parts.join('\n\n'));
 }
 
-function onPreAgent(input, { store }) {
-  if (!isMainThread(input)) return null;
-  const state = store.readState(input.session_id);
-  const mode = effectiveMode(state, input.agent_type);
-  if (!mode) return null;
-  const reason = checkDelegation(mode, input.tool_input?.subagent_type);
-  return reason ? deny(reason) : null;
+function onPreAgent(input, { store, agents }) {
+  if (isMainThread(input)) {
+    const state = store.readState(input.session_id);
+    const mode = effectiveMode(state, input.agent_type);
+    const reason = mode && checkDelegation(mode, input.tool_input?.subagent_type);
+    if (reason) return deny(reason);
+  }
+  const updatedInput = applyAgentConfig(input.tool_input, agents);
+  if (!updatedInput) return null;
+  const applied = ['model', 'effort']
+    .filter((key) => updatedInput[key] !== input.tool_input[key])
+    .map((key) => `${key}=${updatedInput[key]}`)
+    .join(', ');
+  return {
+    hookSpecificOutput: {
+      hookEventName: 'PreToolUse',
+      permissionDecision: 'allow',
+      permissionDecisionReason: `claudekei.jsonc: ${applied} for ${input.tool_input.subagent_type}`,
+      updatedInput,
+    },
+  };
 }
 
 function onPreSendMessage(input, { store }) {

@@ -3,9 +3,70 @@
 claudekei has no JSON config file of its own. Everything is standard Claude Code
 configuration: agent frontmatter, `settings.json`, and environment variables.
 
-## Models and effort per agent
+## Config file (`claudekei.jsonc`)
 
-Each agent sets its model in `agents/<name>.md`:
+Like `oh-my-openkei.jsonc`, an optional JSONC file (comments and trailing commas allowed)
+changes specialist models and session limits without forking the plugin:
+
+| File | Scope |
+|---|---|
+| `~/.claude/claudekei.jsonc` (or `.json`) | All projects |
+| `<project>/.claude/claudekei.jsonc` (or `.json`) | This project; wins per field over the user file |
+
+```jsonc
+{
+  // Active preset (optional). Entries under "agents" are applied on top of it.
+  "preset": "default",
+  "presets": {
+    "default": {
+      "oracle":   { "model": "opus",   "variant": "xhigh" },
+      "debugger": { "model": "sonnet", "variant": "high" },
+      "explorer": { "model": "haiku" },
+    },
+    "cheap": {
+      "oracle": { "model": "sonnet" },
+    },
+  },
+  "agents": {
+    // Primary agents: default model/effort for new sessions (see below)
+    "planner": { "model": "opus", "variant": "xhigh" },
+    "frontend-developer": { "model": "sonnet", "effort": "high" },
+  },
+  "sessionManager": {
+    "maxSessionsPerAgent": 2,
+    "readContextMinLines": 10,
+    "readContextMaxFiles": 8,
+    "phaseReminder": true,
+  },
+}
+```
+
+| Option | Values |
+|---|---|
+| `<agent>.model` | Specialists: `opus`, `sonnet`, `haiku`, `fable` (other values are ignored). Primary agents: also any full model id |
+| `<agent>.effort` (or `variant`) | `low`, `medium`, `high`, `xhigh`, `max` |
+| `sessionManager.*` | Same as the `KEI_*` variables below; a set env variable wins |
+
+**Specialists:** the `PreToolUse` hook fills `model`/`effort` into each `Agent` call for a
+`claudekei:<agent>`, which overrides the agent file. The file is read on every call, so
+edits apply immediately, with no plugin update or new session.
+
+**Primary agents** (orchestrator, planner, sprinter, business-analyst): `/claudekei:agent <name>`
+writes their `model`/`effort` as the *default* for new sessions (`model` and `effortLevel` in
+`.claude/settings.local.json`, next to `agent`); `/claudekei:agent reset` uses the
+`orchestrator` entry. The app's model picker and `/model` still change it per session.
+`effortLevel` stops at `xhigh`, so `max` starts new sessions at `xhigh`. The plugin only
+removes a `model`/`effortLevel` it wrote itself; a value you set by hand stays.
+
+Limits:
+
+- If the orchestrator passes `model`/`effort` itself (e.g. you asked for it), that wins.
+- A child resumed with `SendMessage` keeps the model it started with.
+- Per-agent `skills`/`mcps` lists stay in the agent files (`skills:` / `tools:`).
+
+## Models and effort per agent (defaults)
+
+Each agent sets its default model in `agents/<name>.md` (`claudekei.jsonc` overrides it):
 
 ```yaml
 ---
@@ -45,7 +106,8 @@ tool use.
 | `KEI_READ_CONTEXT_MAX_FILES` | `8` | Files listed per child (`0` hides read context) |
 | `KEI_PHASE_REMINDER` | `1` | `0` disables the workflow reminder and Read/Write nudge |
 
-Set them under `"env"` in `~/.claude/settings.json` or `.claude/settings.json`.
+Set them under `"env"` in `~/.claude/settings.json` or `.claude/settings.json`, or use
+`sessionManager` in `claudekei.jsonc` (an env variable wins when both are set).
 
 ## Default main agent
 
