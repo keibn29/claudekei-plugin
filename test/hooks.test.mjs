@@ -3,7 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
@@ -232,4 +232,42 @@ test('malformed input never fails the hook', () => {
   const result = spawnSync('node', [HOOK], { input: '{not json', encoding: 'utf8' });
   assert.equal(result.status, 0);
   assert.equal(result.stdout, '');
+});
+
+test('/claudekei:agent writes settings.local.json, keeps other keys, and blocks the prompt', () => {
+  const project = join(DATA, 'project');
+  mkdirSync(join(project, '.claude'), { recursive: true });
+  const file = join(project, '.claude', 'settings.local.json');
+  writeFileSync(file, JSON.stringify({ permissions: { allow: ['Bash(ls)'] } }));
+  const env = { CLAUDE_PROJECT_DIR: project };
+  const prompt = (text) =>
+    run(base(newSession(), { hook_event_name: 'UserPromptSubmit', prompt: text }), env);
+
+  const set = prompt('/claudekei:agent plan');
+  assert.equal(set.decision, 'block');
+  assert.match(set.reason, /claudekei:planner/);
+  assert.deepEqual(JSON.parse(readFileSync(file, 'utf8')), {
+    permissions: { allow: ['Bash(ls)'] },
+    agent: 'claudekei:planner',
+  });
+
+  assert.match(prompt('/claudekei:agent').reason, /claudekei:planner \(set in/);
+  assert.match(prompt('/claudekei:agent oracle').reason, /Unknown agent "oracle"/);
+
+  prompt('/claudekei:agent reset');
+  assert.deepEqual(JSON.parse(readFileSync(file, 'utf8')), { permissions: { allow: ['Bash(ls)'] } });
+});
+
+test('/claudekei:agent never overwrites an unreadable settings file', () => {
+  const project = join(DATA, 'broken');
+  mkdirSync(join(project, '.claude'), { recursive: true });
+  const file = join(project, '.claude', 'settings.local.json');
+  writeFileSync(file, '{ not json');
+  const out = run(
+    base(newSession(), { hook_event_name: 'UserPromptSubmit', prompt: '/claudekei:agent sprinter' }),
+    { CLAUDE_PROJECT_DIR: project },
+  );
+  assert.equal(out.decision, 'block');
+  assert.match(out.reason, /Could not update/);
+  assert.equal(readFileSync(file, 'utf8'), '{ not json');
 });

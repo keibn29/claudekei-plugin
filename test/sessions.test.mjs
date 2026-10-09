@@ -7,6 +7,7 @@ import {
   detectModeSwitch,
   effectiveMode,
   isAliasLike,
+  parseAgentCommand,
   recordRead,
   registerChild,
   renderResumable,
@@ -137,4 +138,19 @@ test('effectiveMode prefers explicit mode, then claudekei main-thread agent', ()
   assert.equal(effectiveMode(state, undefined), null);
   state.mode = 'planner';
   assert.equal(effectiveMode(state, 'claudekei:orchestrator'), 'planner');
+});
+
+test('parseAgentCommand maps names and mode aliases', () => {
+  assert.equal(parseAgentCommand('/claudekei:plan x'), null);
+  assert.equal(parseAgentCommand('please /claudekei:agent planner'), null);
+  assert.deepEqual(parseAgentCommand('/claudekei:agent'), { action: 'show' });
+  assert.deepEqual(parseAgentCommand(' /claudekei:agent planner '), { action: 'set', agent: 'planner' });
+  assert.deepEqual(parseAgentCommand('/claudekei:agent sprint'), { action: 'set', agent: 'sprinter' });
+  assert.deepEqual(parseAgentCommand('/claudekei:agent claudekei:business-analyst'), {
+    action: 'set',
+    agent: 'business-analyst',
+  });
+  assert.deepEqual(parseAgentCommand('/claudekei:agent reset'), { action: 'reset' });
+  assert.deepEqual(parseAgentCommand('/claudekei:agent oracle'), { action: 'invalid', arg: 'oracle' });
+  assert.equal(parseAgentCommand('/claudekei:agent planner now'), null);
 });

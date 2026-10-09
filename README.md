@@ -79,6 +79,11 @@ specialist.
 `/claudekei:<mode>` switches the role inside the current conversation (handy in the desktop
 app). `--agent` starts a session with that agent's own prompt and tool restrictions.
 
+To pick the agent for **new** sessions without the CLI (e.g. in the desktop app), type
+`/claudekei:agent planner` (or `orchestrator`, `sprinter`, `business-analyst`, `reset`;
+no argument shows the current value). The hook saves it to the project's
+`.claude/settings.local.json` without a model turn; then open a new session (Cmd+N).
+
 ### Specialists (`subagent_type: claudekei:<name>`)
 
 | Agent | Default model | Access | Role |

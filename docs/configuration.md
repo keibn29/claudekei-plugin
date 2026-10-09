@@ -50,7 +50,14 @@ Set them under `"env"` in `~/.claude/settings.json` or `.claude/settings.json`.
 ## Default main agent
 
 The plugin's `settings.json` sets `"agent": "orchestrator"`. Your own `agent` setting
-takes precedence. To use plain Claude Code in a project, disable the plugin there:
+takes precedence. `/claudekei:agent <orchestrator|planner|sprinter|business-analyst|reset>`
+writes it for you: the `UserPromptSubmit` hook sets (or removes) `"agent": "claudekei:<name>"`
+in the project's `.claude/settings.local.json`, keeps every other key, and blocks the
+prompt so no model turn is spent. It applies to sessions started afterwards; the current
+conversation keeps its agent (use `/claudekei:<mode>` to switch roles in place). Keep
+`settings.local.json` out of git if your repo does not ignore it already.
+
+To use plain Claude Code in a project, disable the plugin there:
 
 ```json
 { "enabledPlugins": { "claudekei@claudekei": false } }

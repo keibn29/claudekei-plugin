@@ -78,6 +78,11 @@ Kiểm tra: mở session và gõ `ping all agents`, orchestrator sẽ gọi lầ
 `/claudekei:<chế độ>` đổi vai trò ngay trong hội thoại hiện tại (tiện khi dùng app desktop).
 `--agent` khởi động session với prompt và giới hạn tool riêng của agent đó.
 
+Muốn chọn agent cho **session mới** mà không dùng CLI (ví dụ trong app desktop), gõ
+`/claudekei:agent planner` (hoặc `orchestrator`, `sprinter`, `business-analyst`, `reset`;
+không kèm tên thì xem giá trị hiện tại). Hook lưu vào `.claude/settings.local.json` của
+project mà không tốn lượt model; sau đó mở session mới (Cmd+N).
+
 ### Specialist (`subagent_type: claudekei:<tên>`)
 
 | Agent | Model mặc định | Quyền | Vai trò |

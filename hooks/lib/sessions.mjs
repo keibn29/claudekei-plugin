@@ -192,3 +192,21 @@ export function effectiveMode(state, agentType) {
   const type = shortType(agentType);
   return PRIMARY_AGENTS.has(type) ? type : null;
 }
+
+/**
+ * Parses `/claudekei:agent [name]`, which sets the default main-thread agent
+ * for new sessions. Returns null when the prompt is not that command,
+ * otherwise `{ action: 'show' | 'set' | 'reset' | 'invalid', agent?, arg? }`.
+ */
+export function parseAgentCommand(prompt) {
+  const match = new RegExp(`^\\s*\\/${PLUGIN_NAME}:agent(?:\\s+(\\S+))?\\s*$`).exec(
+    prompt ?? '',
+  );
+  if (!match) return null;
+  const arg = match[1]?.toLowerCase();
+  if (!arg) return { action: 'show' };
+  if (arg === 'reset' || arg === 'default') return { action: 'reset' };
+  const name = shortType(arg);
+  const agent = PRIMARY_AGENTS.has(name) ? name : MODE_COMMANDS[name];
+  return agent ? { action: 'set', agent } : { action: 'invalid', arg: match[1] };
+}

@@ -5,14 +5,18 @@
 import {
   NUDGE_AGENTS,
   PHASE_REMINDER_TEXT,
+  PLUGIN_NAME,
+  PRIMARY_AGENTS,
   REMINDER_AGENTS,
 } from './config.mjs';
+import { readAgent, writeAgent } from './project-settings.mjs';
 import {
   checkDelegation,
   detectModeSwitch,
   effectiveMode,
   findChild,
   isAliasLike,
+  parseAgentCommand,
   recordRead,
   registerChild,
   renderAvailableAliases,
@@ -39,6 +43,11 @@ function deny(reason) {
   };
 }
 
+// Stops the prompt before it reaches the model; `reason` is shown to the user.
+function block(reason) {
+  return { decision: 'block', reason };
+}
+
 const isMainThread = (input) => !input.agent_id;
 
 function onSessionStart(input, { store, limits }) {
@@ -54,8 +63,49 @@ function onSessionStart(input, { store, limits }) {
   return context('SessionStart', renderResumable(state, { cwd: input.cwd, limits }));
 }
 
+const AGENT_USAGE = `Usage: /${PLUGIN_NAME}:agent <${[...PRIMARY_AGENTS].join('|')}|reset>`;
+
+// `/claudekei:agent <name>` sets the default agent for NEW sessions in this
+// project. The hook does the write itself so no model turn is spent.
+function onAgentCommand(command, input) {
+  const projectDir = process.env.CLAUDE_PROJECT_DIR || input.cwd;
+  const file = '.claude/settings.local.json';
+  const fallback = `${PLUGIN_NAME}:orchestrator (plugin default)`;
+  try {
+    if (command.action === 'invalid') {
+      return block(`Unknown agent "${command.arg}". ${AGENT_USAGE}`);
+    }
+    if (command.action === 'show') {
+      const current = readAgent(projectDir);
+      const where = current ? `set in ${file}` : 'no override in this project';
+      return block(`Default agent for new sessions: ${current ?? fallback} (${where}). ${AGENT_USAGE}`);
+    }
+    if (command.action === 'reset') {
+      writeAgent(projectDir, null);
+      return block(
+        `Removed the agent override from ${file}. New sessions in this project use ${fallback}. ` +
+          'Start a new session (Cmd+N in the desktop app) to use it.',
+      );
+    }
+    const agent = `${PLUGIN_NAME}:${command.agent}`;
+    writeAgent(projectDir, agent);
+    return block(
+      `Default agent for new sessions in this project is now ${agent} (saved to ${file}). ` +
+        'Start a new session (Cmd+N in the desktop app) to use it. ' +
+        'This conversation keeps its current agent.',
+    );
+  } catch (error) {
+    return block(
+      `Could not update ${file}: ${error?.message ?? error}. ` +
+        `Set "agent": "${PLUGIN_NAME}:<name>" there by hand.`,
+    );
+  }
+}
+
 function onUserPrompt(input, { store, limits }) {
   if (!isMainThread(input)) return null;
+  const agentCommand = parseAgentCommand(input.prompt);
+  if (agentCommand) return onAgentCommand(agentCommand, input);
   const switched = detectModeSwitch(input.prompt);
   const { state } = store.withState(input.session_id, (s) => {
     if (!switched || s.mode === switched) return false;
