@@ -8,7 +8,6 @@
 import {
   ALIAS_PREFIXES,
   DELEGATE_SETS,
-  MODEL_ALIASES,
   MODE_COMMANDS,
   PLUGIN_NAME,
   PRIMARY_AGENTS,
@@ -223,8 +222,7 @@ export function applyAgentConfig(toolInput, agents) {
   const entry = agents?.[shortType(type)];
   if (!entry) return null;
   const updated = { ...toolInput };
-  const model = entry.model?.toLowerCase();
-  if (MODEL_ALIASES.has(model) && !toolInput.model) updated.model = model;
+  if (entry.model && !toolInput.model) updated.model = entry.model;
   if (entry.effort && !toolInput.effort) updated.effort = entry.effort;
   const changed = updated.model !== toolInput.model || updated.effort !== toolInput.effort;
   return changed ? updated : null;

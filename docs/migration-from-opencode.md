@@ -5,7 +5,7 @@
 | oh-my-openkei | claudekei |
 |---|---|
 | Orchestrator, Planner, Sprinter, Business Analyst prompts | `agents/{orchestrator,planner,sprinter,business-analyst}.md` (same text, Claude Code tool names) |
-| 9 specialist prompts | `agents/*.md`, invoked as `claudekei:<name>` |
+| 7 specialist prompts (trigger-developer and observer dropped) | `agents/*.md`, invoked as `claudekei:<name>` |
 | `task` tool | `Agent` tool |
 | `task_id="exp-1"` reuse | `SendMessage(to: "exp-1")` |
 | Task session manager (aliases, read context, protected running children, per-agent cap) | `hooks/claudekei.mjs` + native subagent resume |
@@ -25,8 +25,6 @@
 - **Background subagents.** Claude Code may run subagents in the background; results
   arrive as task notifications. The prompts tell primary agents to wait for them.
 - **Session state persists** across restarts and `--resume` (OpenCode kept it in memory).
-- **Observer is enabled** by default; Claude models read images and PDFs natively, and
-  Observer still keeps raw bytes out of the orchestrator's context.
 
 ## Dropped (not needed or not possible)
 
@@ -36,6 +34,6 @@
 | `apply-patch`, `json-error-recovery`, `delegate-task-retry` | Worked around non-Claude tool-call quirks |
 | `chat-headers`, image hook | OpenCode-specific |
 | `filter-available-skills` | Replaced by `skills:` preloading |
-| `auto-update-checker`, CLI installer, config schema | Handled by the plugin marketplace; `oh-my-openkei.jsonc` presets map to `claudekei.jsonc` (models/effort/sessionManager) |
+| `auto-update-checker`, CLI installer, config schema | Handled by the plugin marketplace; the active `oh-my-openkei.jsonc` preset maps to the single `presets` map in `claudekei.jsonc` (models/effort/sessionManager) |
 | `webfetch` (smartfetch), `ast_grep_*` tools | Use built-in `WebFetch`; add an ast-grep MCP server if you need structural search |
 | `disabled_agents`, `displayName`, prompt override files | Edit or delete files in `agents/` |

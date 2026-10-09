@@ -1,0 +1,37 @@
+// claudekei config template. Copy it to one of:
+//   ~/.claude/claudekei.jsonc            all projects
+//   <project>/.claude/claudekei.jsonc    one project (wins per field over the user file)
+//
+// Values below are the plugin defaults (agents/*.md), so an unedited copy changes nothing.
+//
+// model:  opus | sonnet | haiku | fable   (always the latest version of that family;
+//         pin one with e.g. "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5" under
+//         "env" in ~/.claude/settings.json)
+// effort: low | medium | high | xhigh | max   (omit to use the model's default)
+{
+  // Specialists only; applied to every delegation, from the next one on. Primary agents
+  // (orchestrator, planner, sprinter, business-analyst) run on the model and effort
+  // picked in the app (or /model, /effort), so they are not configured here.
+  "presets": {
+    "explorer":           { "model": "haiku",  "effort": "low" },
+    "librarian":          { "model": "haiku",  "effort": "low" },
+    "oracle":             { "model": "opus",   "effort": "high" },
+    "debugger":           { "model": "sonnet", "effort": "xhigh" },
+    "designer":           { "model": "sonnet", "effort": "high" },
+    "frontend-developer": { "model": "sonnet", "effort": "high" },
+    "backend-developer":  { "model": "sonnet", "effort": "high" },
+  },
+
+  // Where /claudekei:agent saves the default agent for new sessions:
+  //   "project"  .claude/settings.local.json in the current project (creates .claude/ there)
+  //   "global"   ~/.claude/settings.json, for all projects (a project-level "agent" still wins)
+  "agentScope": "project",
+
+  // Resumable child sessions (same as the KEI_* env vars; a set env var wins).
+  "sessionManager": {
+    "maxSessionsPerAgent": 1,  // settled sessions remembered per specialist (1-10)
+    "readContextMinLines": 10, // min lines read before a file is listed (0-1000)
+    "readContextMaxFiles": 8,  // files listed per child, 0 hides the list (0-50)
+    "phaseReminder": true,     // workflow reminder before each prompt
+  },
+}

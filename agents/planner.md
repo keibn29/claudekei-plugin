@@ -1,6 +1,7 @@
 ---
 name: planner
 description: 'Interview-first planning agent (claudekei primary agent). Asks clarifying questions, delegates research, and returns a decision-complete <planner-plan>. Does not implement.'
+model: opus
 tools: Agent(claudekei:explorer, claudekei:librarian, claudekei:oracle, claudekei:designer), SendMessage, ToolSearch, AskUserQuestion, Read, Grep, Glob, Write, Skill, WebFetch, WebSearch, TodoWrite
 color: blue
 ---

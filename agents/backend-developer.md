@@ -2,6 +2,7 @@
 name: backend-developer
 description: 'Backend implementation specialist: APIs, services, DB schema/migrations/queries, auth, jobs, CLI/server code, and backend tests. Use for bounded server-side changes.'
 model: sonnet
+effort: high
 disallowedTools: Agent
 skills:
   - backend-developer

@@ -25,6 +25,16 @@ thay vì bắt đầu lại từ đầu, giống cơ chế `task_id` bên OpenCo
 | Planner / Sprinter / Business Analyst | `claude --agent claudekei:<tên>` hoặc `/claudekei:plan`, `/claudekei:sprint`, `/claudekei:analyze` ngay trong hội thoại |
 | Nhắc workflow | Hook `UserPromptSubmit` / `PostToolUse` |
 
+## Có gì mới trong v0.5.0
+
+- **`/claudekei:agent <tên>`** chọn agent chính cho **session mới** ngay trong ô chat, không
+  cần CLI. Xem [Đổi agent chính](#đổi-agent-chính).
+- **`claudekei.jsonc`** đặt model/effort cho specialist, giống `oh-my-openkei.jsonc`; repo có sẵn
+  file mẫu để copy. Khóa
+  `variant` của OpenCode đổi thành `effort` cho khớp Claude Code. Xem [Model và effort](#model-và-effort).
+- **Bỏ** hai specialist `trigger-developer` và `observer`.
+- Plugin không còn ghi model/effort cho agent chính: bạn chọn trong app.
+
 ## Cài đặt
 
 Yêu cầu: Claude Code ≥ 2.1, Node.js ≥ 18 (hook chạy bằng `node`).
@@ -68,55 +78,95 @@ Kiểm tra: mở session và gõ `ping all agents`, orchestrator sẽ gọi lầ
 
 ### Agent chính (agent bạn trò chuyện trực tiếp)
 
-| Agent | Khởi động | Vai trò |
+| Agent | Khởi động | Model (mặc định khi dùng CLI¹) | Vai trò |
+|---|---|---|---|
+| **orchestrator** (mặc định) | `claude` / `/claudekei:orchestrate` | opus | Điều phối, ưu tiên ủy quyền: chia việc, chạy song song, reuse session, tổng hợp và kiểm tra |
+| **planner** | `claude --agent claudekei:planner` / `/claudekei:plan` | opus | Lập kế hoạch qua phỏng vấn; chỉ ủy quyền cho explorer/librarian/oracle/designer; trả về `<planner-plan>` |
+| **sprinter** | `claude --agent claudekei:sprinter` / `/claudekei:sprint` | sonnet | Tự làm nhanh, không ủy quyền |
+| **business-analyst** | `claude --agent claudekei:business-analyst` / `/claudekei:analyze` | opus | Nghiên cứu, viết yêu cầu, chiến lược; lưu phân tích vào `.business-analyst/*.md` |
+
+¹ Dùng khi không có gì khác chọn model, ví dụ `claude --agent claudekei:sprinter`. App desktop
+luôn mở session bằng model trong ô chọn model, và giá trị đó thắng.
+
+### Đổi agent chính
+
+Claude Code không có phím Shift+Tab để đổi agent như OpenCode. Dùng một trong các lệnh sau,
+gõ ngay trong ô chat:
+
+| Bạn muốn | Gõ | Có hiệu lực |
 |---|---|---|
-| **orchestrator** (mặc định) | `claude` / `/claudekei:orchestrate` | Điều phối, ưu tiên ủy quyền: chia việc, chạy song song, reuse session, tổng hợp và kiểm tra |
-| **planner** | `claude --agent claudekei:planner` / `/claudekei:plan` | Lập kế hoạch qua phỏng vấn; chỉ ủy quyền cho explorer/librarian/oracle/designer; trả về `<planner-plan>` |
-| **sprinter** | `claude --agent claudekei:sprinter` / `/claudekei:sprint` | Tự làm nhanh, không ủy quyền |
-| **business-analyst** | `claude --agent claudekei:business-analyst` / `/claudekei:analyze` | Nghiên cứu, viết yêu cầu, chiến lược; lưu phân tích vào `.business-analyst/*.md` |
+| Đổi vai **ngay trong hội thoại này**, giữ nguyên ngữ cảnh | `/claudekei:plan`, `/claudekei:sprint`, `/claudekei:analyze`, `/claudekei:orchestrate` | Ngay lập tức |
+| Đổi agent mà **session mới** khởi động cùng (giới hạn tool thật, như `--agent`) | `/claudekei:agent planner` (hoặc `orchestrator`, `sprinter`, `business-analyst`) | **Chỉ ở session mới** |
+| Quay về mặc định (orchestrator) | `/claudekei:agent reset` | **Chỉ ở session mới** |
+| Xem agent mặc định hiện tại | `/claudekei:agent` | — |
 
-`/claudekei:<chế độ>` đổi vai trò ngay trong hội thoại hiện tại (tiện khi dùng app desktop).
-`--agent` khởi động session với prompt và giới hạn tool riêng của agent đó.
+> [!WARNING]
+> `/claudekei:agent` **không** đổi hội thoại bạn đang gõ lệnh. Hội thoại đó vẫn giữ agent
+> cũ. Chạy lệnh xong, hãy **mở session mới** (Cmd+N trong app desktop, hoặc chạy lại
+> `claude`) để dùng agent mới.
+>
+> - App sẽ hiện **"A hook blocked your prompt"**. Đây là bình thường: plugin đã lưu lựa chọn
+>   và chặn tin nhắn lại để không tốn lượt model. Không cần bấm Edit prompt hay gửi lại.
+> - Lựa chọn giữ nguyên tới khi bạn đổi hoặc chạy `/claudekei:agent reset`. Không cần gõ lại
+>   mỗi lần mở session. Mặc định nó được lưu **theo từng project** trong
+>   `.claude/settings.local.json` (nhớ để file này ngoài git).
 
-Muốn chọn agent cho **session mới** mà không dùng CLI (ví dụ trong app desktop), gõ
-`/claudekei:agent planner` (hoặc `orchestrator`, `sprinter`, `business-analyst`, `reset`;
-không kèm tên thì xem giá trị hiện tại). Hook lưu vào `.claude/settings.local.json` của
-project mà không tốn lượt model; sau đó mở session mới (Cmd+N).
+**Không muốn có thư mục `.claude/` trong project?** Thêm `"agentScope": "global"` vào
+`~/.claude/claudekei.jsonc`. Khi đó `/claudekei:agent` lưu lựa chọn vào `~/.claude/settings.json`,
+áp dụng cho **mọi project**, và không ghi gì vào project. Project nào vẫn tự đặt `agent` riêng
+thì project đó thắng; lệnh sẽ báo cho bạn biết.
+
+Ví dụ: `/claudekei:agent planner` → Cmd+N → lập kế hoạch → `/claudekei:agent reset` →
+Cmd+N → triển khai bằng orchestrator.
+
+Từ terminal, `claude --agent claudekei:<tên>` mở session với agent đó luôn.
 
 ### Specialist (`subagent_type: claudekei:<tên>`)
 
 | Agent | Model mặc định | Quyền | Vai trò |
 |---|---|---|---|
-| explorer | haiku | chỉ đọc (+ Serena nếu cấu hình) | Tìm file, symbol, pattern |
-| librarian | haiku | chỉ đọc + WebFetch/WebSearch + context7, grep_app, websearch (+ Atlassian) | Tra tài liệu thư viện, API, ví dụ GitHub |
+| explorer | haiku, effort low | chỉ đọc (+ Serena nếu cấu hình) | Tìm file, symbol, pattern |
+| librarian | haiku, effort low | chỉ đọc + WebFetch/WebSearch + context7, grep_app, websearch (+ Atlassian) | Tra tài liệu thư viện, API, ví dụ GitHub |
 | oracle | opus, effort high | chỉ đọc, skill `simplify` | Kiến trúc, trade-off, review code, bug khó |
 | debugger | sonnet, effort high | chỉ đọc | Tìm nguyên nhân gốc, không sửa |
-| designer | sonnet | đầy đủ (không gọi subagent) | Quyết định UI/UX |
-| frontend-developer | sonnet | đầy đủ (không gọi subagent), skill `vercel-react-best-practices`, `karpathy-guidelines` | Code phía client + test |
-| backend-developer | sonnet | đầy đủ (không gọi subagent), skill `backend-developer`, `karpathy-guidelines` | Code phía server + test |
-| trigger-developer | sonnet | đầy đủ (không gọi subagent), skill `karpathy-guidelines` | Trigger.dev |
-| observer | haiku | Read/Glob | Đọc ảnh, screenshot, PDF → text có cấu trúc |
+| designer | sonnet, effort high | đầy đủ (không gọi subagent) | Quyết định UI/UX |
+| frontend-developer | sonnet, effort high | đầy đủ (không gọi subagent), skill `vercel-react-best-practices`, `karpathy-guidelines` | Code phía client + test |
+| backend-developer | sonnet, effort high | đầy đủ (không gọi subagent), skill `backend-developer`, `karpathy-guidelines` | Code phía server + test |
 
-Model của luồng chính là model bạn chọn trong Claude Code (`/model`); nên dùng Opus cho
-orchestrator và planner.
+### Model và effort
 
-Đổi model/effort của specialist mà không cần sửa plugin: tạo `~/.claude/claudekei.jsonc`
-(hoặc `<project>/.claude/claudekei.jsonc`), định dạng giống `oh-my-openkei.jsonc`:
+**Agent chính** (orchestrator, planner, sprinter, business-analyst) chạy theo model và effort
+của session. Chọn trong menu model (Cmd+Shift+I) và menu effort (Cmd+Shift+E) của app, hoặc
+bằng `/model` và `/effort`; app tự nhớ lựa chọn. Nên chọn theo cột "Model mặc định" ở bảng trên (Opus cho orchestrator, planner, business-analyst; Sonnet cho sprinter).
+Plugin không đặt hai giá trị này vì app desktop luôn mở session kèm `--model`/`--effort`,
+và hai cờ này thắng mọi giá trị trong settings.
 
-```jsonc
-{
-  "preset": "default",
-  "presets": {
-    "default": {
-      "oracle": { "model": "opus", "variant": "xhigh" },
-      "explorer": { "model": "haiku" },
-    },
-  },
-}
+**Specialist** dùng model mặc định trong bảng trên. Muốn đổi mà không sửa plugin, tạo
+`~/.claude/claudekei.jsonc` (mọi project) hoặc `<project>/.claude/claudekei.jsonc` (riêng một
+project, ưu tiên hơn). Định dạng giống `oh-my-openkei.jsonc` nhưng chỉ có một bảng `presets`
+(tên agent → `{ "model", "effort" }`), không còn nhiều preset.
+
+Bắt đầu từ file mẫu [`claudekei.jsonc`](claudekei.jsonc): file liệt kê đủ các specialist với
+model/effort mặc định, nên copy về mà chưa sửa thì không thay đổi gì. Copy file (bỏ qua nếu
+bạn đã có), rồi sửa các giá trị muốn đổi:
+
+```bash
+mkdir -p ~/.claude && [ -f ~/.claude/claudekei.jsonc ] || curl -fsSL https://raw.githubusercontent.com/keibn29/claudekei/main/claudekei.jsonc -o ~/.claude/claudekei.jsonc
 ```
 
-Specialist có hiệu lực ngay ở lần giao việc tiếp theo; agent chính (`orchestrator`, `planner`…)
-nhận `model`/`effort` làm mặc định cho session mới khi bạn chạy `/claudekei:agent <tên>`. Chi tiết: [docs/configuration.md](docs/configuration.md#config-file-claudekeijsonc).
+Từ bản clone ở máy: `cp -n claudekei.jsonc ~/.claude/claudekei.jsonc`. Muốn áp dụng cho riêng
+một project thì copy vào `<project>/.claude/claudekei.jsonc`.
+
+
+- Có hiệu lực từ lần giao việc tiếp theo, kể cả trong session đang mở: không cần cập nhật
+  plugin hay mở session mới.
+- `model`: `opus`, `sonnet`, `haiku` hoặc `fable`. Các tên này luôn trỏ tới bản mới nhất
+  (hiện là Opus 5.5, Sonnet 5.5, Haiku 5.5). Muốn cố định phiên bản, đặt ví dụ
+  `"ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5"` trong mục `"env"` của `~/.claude/settings.json`.
+- `effort`: `low`, `medium`, `high`, `xhigh`, `max`.
+- Mục dành cho 4 agent chính bị bỏ qua.
+
+Chi tiết: [docs/configuration.md](docs/configuration.md#config-file-claudekeijsonc).
 
 ## Tái sử dụng session
 

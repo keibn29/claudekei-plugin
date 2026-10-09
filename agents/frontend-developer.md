@@ -2,6 +2,7 @@
 name: frontend-developer
 description: 'Frontend implementation specialist: components, client state, routing, styling, forms, browser behavior, and frontend tests. Use for bounded client-side changes once design direction is clear.'
 model: sonnet
+effort: high
 disallowedTools: Agent
 skills:
   - vercel-react-best-practices

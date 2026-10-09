@@ -23,8 +23,7 @@ history. The plugin adds the OpenCode-style ergonomics on top with hooks
 
 Alias prefixes: `exp` explorer · `lib` librarian · `ora` oracle · `dbg` debugger ·
 `des` designer · `fed` frontend-developer · `bed` backend-developer ·
-`trg` trigger-developer · `obs` observer · `gen` general-purpose · first three letters
-for any other agent type.
+`gen` general-purpose · first three letters for any other agent type.
 
 ## Reuse is always explicit
 
@@ -40,7 +39,7 @@ arrives as a task notification.
 
 ## Retention
 
-- `KEI_MAX_SESSIONS_PER_AGENT` (default `2`, range 1–10) settled children are listed per
+- `KEI_MAX_SESSIONS_PER_AGENT` (default `1`, range 1–10) settled children are listed per
   specialist type. Running children are protected and do not count toward the cap.
 - Eviction only removes the alias from the list. The subagent itself is still
   resumable by its raw agent id until Claude Code cleans up transcripts

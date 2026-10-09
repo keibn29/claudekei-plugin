@@ -1,6 +1,7 @@
 ---
 name: business-analyst
 description: 'Business analysis agent (claudekei primary agent): market research, competitive analysis, requirements elicitation, strategic planning. Saves full analysis to .business-analyst/*.md.'
+model: opus
 tools: Agent(claudekei:explorer, claudekei:librarian, claudekei:oracle), SendMessage, ToolSearch, AskUserQuestion, Read, Grep, Glob, Write, Edit, Skill, WebFetch, WebSearch, TodoWrite
 skills:
   - business-analyst

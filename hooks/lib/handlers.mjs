@@ -9,7 +9,12 @@ import {
   PRIMARY_AGENTS,
   REMINDER_AGENTS,
 } from './config.mjs';
-import { readDefaults, writeDefaults } from './project-settings.mjs';
+import {
+  projectSettingsPaths,
+  readAgent,
+  userSettingsPath,
+  writeAgent,
+} from './project-settings.mjs';
 import {
   applyAgentConfig,
   checkDelegation,
@@ -66,48 +71,59 @@ function onSessionStart(input, { store, limits }) {
 
 const AGENT_USAGE = `Usage: /${PLUGIN_NAME}:agent <${[...PRIMARY_AGENTS].join('|')}|reset>`;
 
-// The `effortLevel` setting stops at xhigh; `max` only exists per call.
-const sessionEffort = (effort) => (effort === 'max' ? 'xhigh' : effort);
-
-function describeDefaults({ agent, model, effortLevel }) {
-  const parts = [agent ?? `${PLUGIN_NAME}:orchestrator (plugin default)`];
-  parts.push(`model ${model ?? 'app default'}`);
-  parts.push(`effort ${effortLevel ?? 'app default'}`);
-  return parts.join(', ');
+// A project-level `agent` wins over ~/.claude/settings.json; report it so a
+// global change is not silently ignored here.
+function projectOverride(projectDir) {
+  for (const file of projectSettingsPaths(projectDir)) {
+    try {
+      const agent = readAgent(file);
+      if (agent) return { agent, file: file.slice(projectDir.length + 1) };
+    } catch {
+      // Unreadable project settings: nothing to report.
+    }
+  }
+  return null;
 }
 
-// `/claudekei:agent <name>` sets the defaults for NEW sessions in this project:
-// the main-thread agent plus its `model`/`effort` from claudekei.jsonc. They are
-// only defaults; the app's model picker and /model still win. The hook does the
-// write itself so no model turn is spent.
-function onAgentCommand(command, input, { store, agents = {} }) {
+// `/claudekei:agent <name>` sets the default agent for NEW sessions, in this
+// project or (with "agentScope": "global") in all projects. The hook does the
+// write itself so no model turn is spent. Model and effort stay with the app's
+// pickers: the desktop app starts every session with explicit --model/--effort
+// flags, which beat any settings value.
+function onAgentCommand(command, input, { store, agentScope }) {
   const projectDir = process.env.CLAUDE_PROJECT_DIR || input.cwd;
-  const file = '.claude/settings.local.json';
+  const global = agentScope === 'global';
+  const file = global ? userSettingsPath() : projectSettingsPaths(projectDir)[0];
+  const label = global ? '~/.claude/settings.json' : '.claude/settings.local.json';
+  const scope = global ? 'in all projects' : 'in this project';
+  const fallback = `${PLUGIN_NAME}:orchestrator (plugin default)`;
+  const override = global ? projectOverride(projectDir) : null;
+  const overrideNote = override
+    ? ` Note: this project sets "agent": "${override.agent}" in ${override.file}, which wins here; ` +
+      'delete that key to use the global default.'
+    : '';
   try {
     if (command.action === 'invalid') {
       return block(`Unknown agent "${command.arg}". ${AGENT_USAGE}`);
     }
     if (command.action === 'show') {
-      return block(`Defaults for new sessions: ${describeDefaults(readDefaults(projectDir))}. ${AGENT_USAGE}`);
+      const current = readAgent(file);
+      const where = current ? `set in ${label}` : `not set in ${label}`;
+      return block(
+        `Default agent for new sessions ${scope}: ${current ?? fallback} (${where}).${overrideNote} ${AGENT_USAGE}`,
+      );
     }
-    const name = command.action === 'reset' ? 'orchestrator' : command.agent;
-    const entry = agents[name] ?? {};
-    const values = {
-      agent: command.action === 'reset' ? null : `${PLUGIN_NAME}:${name}`,
-      model: entry.model,
-      effortLevel: sessionEffort(entry.effort),
-    };
-    const owned = writeDefaults(projectDir, values, store.readOwned(projectDir));
-    store.writeOwned(projectDir, owned);
-    const note = entry.effort === 'max' ? ' (effort max is per-call only, so new sessions start at xhigh)' : '';
+    const agent = command.action === 'reset' ? null : `${PLUGIN_NAME}:${command.agent}`;
+    writeAgent(file, agent, global ? {} : store.readLegacyDefaults(projectDir));
+    if (!global) store.forgetLegacyDefaults(projectDir);
     return block(
-      `Defaults for new sessions in this project: ${describeDefaults(readDefaults(projectDir))}${note}. ` +
-        `Saved to ${file}. Start a new session (Cmd+N in the desktop app) to use them; ` +
-        'the model picker can still change the model. This conversation keeps its current agent.',
+      `Default agent for new sessions ${scope} is now ${agent ?? fallback} (saved to ${label}). ` +
+        'Start a new session (Cmd+N in the desktop app) to use it; pick its model and effort in ' +
+        `the app as usual. This conversation keeps its current agent.${overrideNote}`,
     );
   } catch (error) {
     return block(
-      `Could not update ${file}: ${error?.message ?? error}. ` +
+      `Could not update ${label}: ${error?.message ?? error}. ` +
         `Set "agent": "${PLUGIN_NAME}:<name>" there by hand.`,
     );
   }

@@ -2,6 +2,7 @@
 name: librarian
 description: 'External knowledge retrieval: current library docs, API references, version-specific behavior, GitHub examples, web search, Confluence/Jira. Use for fast-moving or unfamiliar libraries and nuanced best practices.'
 model: haiku
+effort: low
 tools: Read, Grep, Glob, WebFetch, WebSearch, mcp__plugin_claudekei_context7__*, mcp__plugin_claudekei_grep_app__*, mcp__plugin_claudekei_websearch__*, mcp__plugin_claudekei_atlassian__*, mcp__context7__*, mcp__grep_app__*, mcp__atlassian__*
 color: blue
 ---

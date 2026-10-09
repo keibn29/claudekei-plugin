@@ -32,30 +32,30 @@ export function stateDir() {
   return join(dataDir(), 'sessions');
 }
 
-// Values /claudekei:agent last wrote into each project's settings.local.json.
-const ownedFile = () => join(dataDir(), 'project-defaults.json');
+// Plugin v0.4.0 also wrote `model`/`effortLevel` into settings.local.json and
+// recorded them here per project, so /claudekei:agent can remove them again.
+const legacyFile = () => join(dataDir(), 'project-defaults.json');
 
-function readOwnedMap() {
+function readLegacyMap() {
   try {
-    const parsed = JSON.parse(readFileSync(ownedFile(), 'utf8'));
+    const parsed = JSON.parse(readFileSync(legacyFile(), 'utf8'));
     return parsed && typeof parsed === 'object' ? parsed : {};
   } catch {
     return {};
   }
 }
 
-export function readOwned(projectDir) {
-  return readOwnedMap()[projectDir] ?? {};
+export function readLegacyDefaults(projectDir) {
+  return readLegacyMap()[projectDir] ?? {};
 }
 
-export function writeOwned(projectDir, owned) {
-  const map = readOwnedMap();
-  if (Object.keys(owned).length > 0) map[projectDir] = owned;
-  else delete map[projectDir];
-  mkdirSync(dataDir(), { recursive: true });
-  const tmp = `${ownedFile()}.${process.pid}.tmp`;
+export function forgetLegacyDefaults(projectDir) {
+  const map = readLegacyMap();
+  if (!(projectDir in map)) return;
+  delete map[projectDir];
+  const tmp = `${legacyFile()}.${process.pid}.tmp`;
   writeFileSync(tmp, JSON.stringify(map));
-  renameSync(tmp, ownedFile());
+  renameSync(tmp, legacyFile());
 }
 
 function safeId(sessionId) {

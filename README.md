@@ -25,6 +25,16 @@ follow-up work continues in the same context instead of starting from scratch.
 | Planner / Sprinter / Business Analyst | `claude --agent claudekei:<name>` or `/claudekei:plan`, `/claudekei:sprint`, `/claudekei:analyze` in-session |
 | Workflow reminders | `UserPromptSubmit` / `PostToolUse` hooks |
 
+## What's new in v0.5.0
+
+- **`/claudekei:agent <name>`** picks the primary agent for **new** sessions from inside the
+  chat, no CLI needed. See [Switching the primary agent](#switching-the-primary-agent).
+- **`claudekei.jsonc`** sets specialist models/effort, like `oh-my-openkei.jsonc`; a ready-to-copy
+  template ships in the repo. The
+  OpenCode key `variant` is now `effort`, matching Claude Code. See [Models and effort](#models-and-effort).
+- **Removed** the `trigger-developer` and `observer` specialists.
+- Primary-agent model/effort is no longer written by the plugin: choose it in the app.
+
 ## Install
 
 Requirements: Claude Code ≥ 2.1, Node.js ≥ 18 (hooks run with `node`).
@@ -69,57 +79,95 @@ specialist.
 
 ### Primary agents (who you talk to)
 
-| Agent | Start it with | Role |
+| Agent | Start it with | Model (CLI default¹) | Role |
+|---|---|---|---|
+| **orchestrator** (default) | `claude` / `/claudekei:orchestrate` | opus | Delegation-first coordinator: routes, parallelizes, reuses sessions, integrates and verifies |
+| **planner** | `claude --agent claudekei:planner` / `/claudekei:plan` | opus | Interview-first planning; delegates only to explorer/librarian/oracle/designer; returns `<planner-plan>` |
+| **sprinter** | `claude --agent claudekei:sprinter` / `/claudekei:sprint` | sonnet | Fast self-executing agent, no delegation |
+| **business-analyst** | `claude --agent claudekei:business-analyst` / `/claudekei:analyze` | opus | Research + requirements + strategy; delegates to explorer/librarian/oracle; saves analysis to `.business-analyst/*.md` |
+
+¹ Used when nothing else picks the model, e.g. `claude --agent claudekei:sprinter`. The
+desktop app always starts sessions with the model from its picker, which wins.
+
+### Switching the primary agent
+
+There is no Shift+Tab agent switcher in Claude Code. Use one of these, all typed in the chat:
+
+| You want | Type | Takes effect |
 |---|---|---|
-| **orchestrator** (default) | `claude` / `/claudekei:orchestrate` | Delegation-first coordinator: routes, parallelizes, reuses sessions, integrates and verifies |
-| **planner** | `claude --agent claudekei:planner` / `/claudekei:plan` | Interview-first planning; delegates only to explorer/librarian/oracle/designer; returns `<planner-plan>` |
-| **sprinter** | `claude --agent claudekei:sprinter` / `/claudekei:sprint` | Fast self-executing agent, no delegation |
-| **business-analyst** | `claude --agent claudekei:business-analyst` / `/claudekei:analyze` | Research + requirements + strategy; delegates to explorer/librarian/oracle; saves analysis to `.business-analyst/*.md` |
+| Change role **in this conversation**, keep the context | `/claudekei:plan`, `/claudekei:sprint`, `/claudekei:analyze`, `/claudekei:orchestrate` | Immediately |
+| Change the agent **new sessions** start with (real tool restrictions, like `--agent`) | `/claudekei:agent planner` (or `orchestrator`, `sprinter`, `business-analyst`) | **Only in a new session** |
+| Go back to the default (orchestrator) | `/claudekei:agent reset` | **Only in a new session** |
+| See the current default | `/claudekei:agent` | — |
 
-`/claudekei:<mode>` switches the role inside the current conversation (handy in the desktop
-app). `--agent` starts a session with that agent's own prompt and tool restrictions.
+> [!WARNING]
+> `/claudekei:agent` does **not** change the conversation you type it in. That one keeps
+> its agent. After running it, **open a new session** (Cmd+N in the desktop app, or start
+> `claude` again) to get the new agent.
+>
+> - The app shows **"A hook blocked your prompt"**. That is expected: the plugin saved the
+>   choice and stopped the message so no model turn is spent. You don't need to edit or
+>   resend it.
+> - The choice stays until you change it or run `/claudekei:agent reset`. You don't need to
+>   repeat it each session. By default it is saved **per project** in
+>   `.claude/settings.local.json` (keep that file out of git).
 
-To pick the agent for **new** sessions without the CLI (e.g. in the desktop app), type
-`/claudekei:agent planner` (or `orchestrator`, `sprinter`, `business-analyst`, `reset`;
-no argument shows the current value). The hook saves it to the project's
-`.claude/settings.local.json` without a model turn; then open a new session (Cmd+N).
+**Prefer no `.claude/` folder in your projects?** Add `"agentScope": "global"` to
+`~/.claude/claudekei.jsonc`. `/claudekei:agent` then saves the choice in
+`~/.claude/settings.json` for **all projects** and never writes into the project. A project
+that still sets its own `agent` wins; the command tells you when that happens.
+
+Typical flow: `/claudekei:agent planner` → Cmd+N → plan → `/claudekei:agent reset` →
+Cmd+N → implement with the orchestrator.
+
+From the terminal, `claude --agent claudekei:<name>` starts a session with that agent directly.
 
 ### Specialists (`subagent_type: claudekei:<name>`)
 
 | Agent | Default model | Access | Role |
 |---|---|---|---|
-| explorer | haiku | read-only (+ Serena if configured) | Locate files, symbols, patterns |
-| librarian | haiku | read-only + WebFetch/WebSearch + context7, grep_app, websearch (+ Atlassian) | Library docs, API references, GitHub examples |
+| explorer | haiku, effort low | read-only (+ Serena if configured) | Locate files, symbols, patterns |
+| librarian | haiku, effort low | read-only + WebFetch/WebSearch + context7, grep_app, websearch (+ Atlassian) | Library docs, API references, GitHub examples |
 | oracle | opus, effort high | read-only, skill `simplify` | Architecture, trade-offs, code review, escalated bugs |
 | debugger | sonnet, effort high | read-only | Root-cause investigation, no fixes |
-| designer | sonnet | full (no subagents) | UI/UX decisions and polish |
-| frontend-developer | sonnet | full (no subagents), skills `vercel-react-best-practices`, `karpathy-guidelines` | Client-side implementation + tests |
-| backend-developer | sonnet | full (no subagents), skills `backend-developer`, `karpathy-guidelines` | Server-side implementation + tests |
-| trigger-developer | sonnet | full (no subagents), skill `karpathy-guidelines` | Trigger.dev tasks, config, schedules |
-| observer | haiku | Read/Glob | Images, screenshots, PDFs → structured text |
+| designer | sonnet, effort high | full (no subagents) | UI/UX decisions and polish |
+| frontend-developer | sonnet, effort high | full (no subagents), skills `vercel-react-best-practices`, `karpathy-guidelines` | Client-side implementation + tests |
+| backend-developer | sonnet, effort high | full (no subagents), skills `backend-developer`, `karpathy-guidelines` | Server-side implementation + tests |
 
-The main-thread model is whatever you pick in Claude Code (`/model`); Opus is recommended
-for orchestrator and planner.
+### Models and effort
 
-To change specialist models/effort without editing the plugin, create
-`~/.claude/claudekei.jsonc` (or `<project>/.claude/claudekei.jsonc`), in the same shape as
-`oh-my-openkei.jsonc`:
+**Primary agents** (orchestrator, planner, sprinter, business-analyst) run on the
+session's model and effort. Pick them in the app's model menu (Cmd+Shift+I) and effort
+menu (Cmd+Shift+E), or with `/model` and `/effort`; the app remembers your choice. The defaults
+in the table (Opus for orchestrator, planner and business-analyst, Sonnet for sprinter) are
+what we recommend picking. The plugin does not set these: the desktop app
+starts every session with explicit `--model`/`--effort`, which beat any settings value.
 
-```jsonc
-{
-  "preset": "default",
-  "presets": {
-    "default": {
-      "oracle": { "model": "opus", "variant": "xhigh" },
-      "explorer": { "model": "haiku" },
-    },
-  },
-}
+**Specialists** use the defaults in the table above. To change them without editing the
+plugin, create `~/.claude/claudekei.jsonc` (all projects) or
+`<project>/.claude/claudekei.jsonc` (one project, wins per field). It is like
+`oh-my-openkei.jsonc` with a single `presets` map (agent → `{ "model", "effort" }`), no named presets.
+
+Start from the template [`claudekei.jsonc`](claudekei.jsonc): it lists every specialist with
+its default model/effort, so an unedited copy changes nothing. Copy it (skipped if you
+already have one), then edit the values you want:
+
+```bash
+mkdir -p ~/.claude && [ -f ~/.claude/claudekei.jsonc ] || curl -fsSL https://raw.githubusercontent.com/keibn29/claudekei/main/claudekei.jsonc -o ~/.claude/claudekei.jsonc
 ```
 
-Specialist entries apply from the next delegation; primary agents (`orchestrator`,
-`planner`, ...) get their `model`/`effort` as the new-session default when you run
-`/claudekei:agent <name>`. Details: [docs/configuration.md](docs/configuration.md#config-file-claudekeijsonc).
+From a local clone: `cp -n claudekei.jsonc ~/.claude/claudekei.jsonc`. For one project only,
+copy it to `<project>/.claude/claudekei.jsonc` instead.
+
+
+- Applies from the next delegation, even in an open session: no plugin update, no new session.
+- `model`: `opus`, `sonnet`, `haiku` or `fable`. These names always mean the latest version
+  (today Opus 5.5, Sonnet 5.5, Haiku 5.5). To pin one, set e.g.
+  `"ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5"` under `"env"` in `~/.claude/settings.json`.
+- `effort`: `low`, `medium`, `high`, `xhigh`, `max`.
+- Entries for the four primary agents are ignored.
+
+Details: [docs/configuration.md](docs/configuration.md#config-file-claudekeijsonc).
 
 ## Session reuse
 

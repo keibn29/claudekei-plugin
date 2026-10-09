@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
-import { loadLimits } from '../hooks/lib/config.mjs';
+import { loadLimits, PRIMARY_AGENTS } from '../hooks/lib/config.mjs';
 import { applyAgentConfig } from '../hooks/lib/sessions.mjs';
 import { loadUserConfig, parseJsonc } from '../hooks/lib/user-config.mjs';
 
@@ -25,37 +25,45 @@ test('parseJsonc strips comments and trailing commas but not string contents', (
   assert.deepEqual(parsed, { url: 'https://x.dev/a//b', odd: 'keep ,} and // here', list: [1, 2] });
 });
 
-test('loadUserConfig merges preset, agents map, and project overrides', () => {
+test('loadUserConfig reads the presets map with project overrides per field', () => {
   const home = join(ROOT, 'home');
   const project = join(ROOT, 'project');
   writeConfig(home, 'claudekei.jsonc', `{
-    "preset": "default",
     "presets": {
-      "default": {
-        "oracle": { "model": "opus", "variant": "xhigh" },
-        "explorer": { "model": "haiku" },
-        "librarian": { "model": "openai/gpt-5" }, // not a Claude alias: ignored
-      },
-      "unused": { "explorer": { "model": "opus" } },
+      "oracle": { "model": "opus", "effort": "xhigh" },
+      "explorer": { "model": "haiku" },
+      "debugger": { "model": "Sonnet", "effort": "HIGH" },
+      "librarian": { "model": "openai/gpt-5" }, // not a Claude alias: ignored
     },
-    "agents": { "debugger": { "model": "Sonnet", "effort": "high" } },
     "sessionManager": { "maxSessionsPerAgent": 3 },
   }`);
-  writeConfig(project, 'claudekei.json', '{ "agents": { "oracle": { "model": "fable" } } }');
+  writeConfig(project, 'claudekei.json', '{ "presets": { "oracle": { "model": "fable" } } }');
 
   const config = loadUserConfig(project, home);
   assert.deepEqual(config.agents.oracle, { model: 'fable', effort: 'xhigh' });
   assert.deepEqual(config.agents.explorer, { model: 'haiku' });
-  // Kept for primary agents; applyAgentConfig ignores non-alias models for specialists.
-  assert.deepEqual(config.agents.librarian, { model: 'openai/gpt-5' });
   assert.deepEqual(config.agents.debugger, { model: 'sonnet', effort: 'high' });
+  assert.deepEqual(config.agents.librarian, {});
   assert.equal(loadLimits(config.sessionManager).maxSessionsPerAgent, 3);
+});
+
+test('loadUserConfig ignores the removed preset/agents keys', () => {
+  const home = join(ROOT, 'legacy-home');
+  writeConfig(home, 'claudekei.jsonc', `{
+    "preset": "default",
+    "agents": { "oracle": { "model": "haiku" } },
+  }`);
+  assert.deepEqual(loadUserConfig(join(ROOT, 'missing'), home).agents, {});
 });
 
 test('loadUserConfig ignores missing or broken files', () => {
   const home = join(ROOT, 'broken-home');
   writeConfig(home, 'claudekei.jsonc', '{ nope');
-  assert.deepEqual(loadUserConfig(join(ROOT, 'missing'), home), { agents: {}, sessionManager: {} });
+  assert.deepEqual(loadUserConfig(join(ROOT, 'missing'), home), {
+    agents: {},
+    agentScope: 'project',
+    sessionManager: {},
+  });
 });
 
 test('applyAgentConfig fills model/effort for claudekei agents only, explicit values win', () => {
@@ -73,7 +81,6 @@ test('applyAgentConfig fills model/effort for claudekei agents only, explicit va
   assert.equal(applyAgentConfig({ subagent_type: 'claudekei:explorer', model: 'haiku' }, agents), null);
   assert.equal(applyAgentConfig({ subagent_type: 'other:oracle' }, agents), null);
   assert.equal(applyAgentConfig({ subagent_type: 'claudekei:designer' }, agents), null);
-  assert.equal(applyAgentConfig({ subagent_type: 'claudekei:explorer' }, { explorer: { model: 'openai/gpt-5' } }), null);
 });
 
 test('environment variables still override the config file', () => {
@@ -88,5 +95,42 @@ test('environment variables still override the config file', () => {
     delete process.env.KEI_PHASE_REMINDER;
   }
   assert.equal(loadLimits({ phaseReminder: false }).phaseReminder, false);
-  assert.equal(loadLimits().maxSessionsPerAgent, 2);
+  assert.equal(loadLimits().maxSessionsPerAgent, 1);
+});
+
+test('claudekei.jsonc template lists every specialist with its agents/*.md defaults', () => {
+  const repo = new URL('..', import.meta.url);
+  const template = parseJsonc(readFileSync(new URL('claudekei.jsonc', repo), 'utf8'));
+  const listed = template.presets;
+
+  const frontmatter = (name) => {
+    const text = readFileSync(new URL(`agents/${name}.md`, repo), 'utf8');
+    const block = /^---\n([\s\S]*?)\n---/.exec(text)[1];
+    const field = (key) => new RegExp(`^${key}:\\s*(\\S+)`, 'm').exec(block)?.[1];
+    return { model: field('model'), effort: field('effort') };
+  };
+  const agents = readdirSync(new URL('agents/', repo))
+    .map((file) => file.replace(/\.md$/, ''))
+    .filter((name) => !PRIMARY_AGENTS.has(name))
+    .sort();
+
+  assert.deepEqual(Object.keys(listed).sort(), agents);
+  for (const name of agents) {
+    const { model, effort } = frontmatter(name);
+    assert.equal(listed[name].model, model, `${name} model`);
+    assert.equal(listed[name].effort, effort, `${name} effort`);
+  }
+  assert.deepEqual(loadLimits(template.sessionManager), loadLimits());
+});
+
+test('agentScope defaults to project; a valid project value wins over the user value', () => {
+  const home = join(ROOT, 'scope-home');
+  const project = join(ROOT, 'scope-project');
+  writeConfig(home, 'claudekei.jsonc', '{ "agentScope": "global" }');
+  assert.equal(loadUserConfig(join(ROOT, 'missing'), home).agentScope, 'global');
+  writeConfig(project, 'claudekei.jsonc', '{ "agentScope": "project" }');
+  assert.equal(loadUserConfig(project, home).agentScope, 'project');
+  writeConfig(project, 'claudekei.jsonc', '{ "agentScope": "everywhere" }');
+  assert.equal(loadUserConfig(project, home).agentScope, 'global');
+  assert.equal(loadUserConfig(join(ROOT, 'missing'), join(ROOT, 'no-home')).agentScope, 'project');
 });

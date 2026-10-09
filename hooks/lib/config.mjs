@@ -40,8 +40,6 @@ export const ALIAS_PREFIXES = {
   designer: 'des',
   'frontend-developer': 'fed',
   'backend-developer': 'bed',
-  'trigger-developer': 'trg',
-  observer: 'obs',
   'general-purpose': 'gen',
 };
 
@@ -69,7 +67,7 @@ export function loadLimits(fileSettings = {}) {
   const file = fileSettings;
   const reminderEnv = process.env.KEI_PHASE_REMINDER;
   return {
-    maxSessionsPerAgent: intSetting('KEI_MAX_SESSIONS_PER_AGENT', file.maxSessionsPerAgent, 2, 1, 10),
+    maxSessionsPerAgent: intSetting('KEI_MAX_SESSIONS_PER_AGENT', file.maxSessionsPerAgent, 1, 1, 10),
     readContextMinLines: intSetting('KEI_READ_CONTEXT_MIN_LINES', file.readContextMinLines, 10, 0, 1000),
     readContextMaxFiles: intSetting('KEI_READ_CONTEXT_MAX_FILES', file.readContextMaxFiles, 8, 0, 50),
     phaseReminder: reminderEnv ? reminderEnv !== '0' : file.phaseReminder !== false,

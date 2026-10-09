@@ -1,4 +1,5 @@
-// Optional JSONC config file, modelled on oh-my-openkei's oh-my-openkei.jsonc.
+// Optional JSONC config file, modelled on oh-my-openkei's oh-my-openkei.jsonc but
+// with a single `presets` map (agent name -> { model, effort }) instead of named presets.
 //
 //   ~/.claude/claudekei.jsonc            user config
 //   <project>/.claude/claudekei.jsonc    project overrides (wins per field)
@@ -76,26 +77,11 @@ function readConfigFile(dir) {
 
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
-/** Per-agent settings: the active preset first, then the top-level `agents` map. */
-function agentEntries(config) {
-  const merged = {};
-  const preset = isObject(config.presets) ? config.presets[config.preset] : undefined;
-  for (const source of [preset, config.agents]) {
-    if (!isObject(source)) continue;
-    for (const [name, entry] of Object.entries(source)) {
-      if (isObject(entry)) merged[name] = { ...merged[name], ...entry };
-    }
-  }
-  return merged;
-}
-
-// Specialists only take the Agent tool's aliases (checked in applyAgentConfig);
-// primary agents may use any model id the `model` setting accepts.
 function normalizeAgent(entry) {
   const result = {};
-  const model = typeof entry.model === 'string' ? entry.model.trim() : '';
-  if (model) result.model = MODEL_ALIASES.has(model.toLowerCase()) ? model.toLowerCase() : model;
-  const effort = entry.effort ?? entry.variant;
+  const model = typeof entry.model === 'string' ? entry.model.trim().toLowerCase() : '';
+  if (MODEL_ALIASES.has(model)) result.model = model;
+  const effort = entry.effort;
   if (typeof effort === 'string' && EFFORT_LEVELS.has(effort.toLowerCase())) {
     result.effort = effort.toLowerCase();
   }
@@ -108,13 +94,17 @@ export function loadUserConfig(projectDir, home = homedir()) {
 
   const agents = {};
   for (const config of [user, project]) {
-    for (const [name, entry] of Object.entries(agentEntries(config))) {
-      agents[name] = { ...agents[name], ...normalizeAgent(entry) };
+    if (!isObject(config.presets)) continue;
+    for (const [name, entry] of Object.entries(config.presets)) {
+      if (isObject(entry)) agents[name] = { ...agents[name], ...normalizeAgent(entry) };
     }
   }
+  // Where /claudekei:agent saves the default agent: "project" (default) or "global".
+  const scopes = [project.agentScope, user.agentScope];
+  const agentScope = scopes.find((value) => value === 'global' || value === 'project') ?? 'project';
   const sessionManager = {
     ...(isObject(user.sessionManager) ? user.sessionManager : {}),
     ...(isObject(project.sessionManager) ? project.sessionManager : {}),
   };
-  return { agents, sessionManager };
+  return { agents, agentScope, sessionManager };
 }

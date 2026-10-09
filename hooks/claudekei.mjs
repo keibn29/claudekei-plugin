@@ -17,6 +17,7 @@ try {
     store,
     limits: loadLimits(config.sessionManager),
     agents: config.agents,
+    agentScope: config.agentScope,
   });
   if (output) process.stdout.write(JSON.stringify(output));
 } catch (error) {

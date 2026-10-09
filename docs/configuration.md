@@ -1,39 +1,31 @@
 # Configuration
 
-claudekei has no JSON config file of its own. Everything is standard Claude Code
-configuration: agent frontmatter, `settings.json`, and environment variables.
+Besides standard Claude Code configuration (agent frontmatter, `settings.json`,
+environment variables), claudekei reads one optional file: `claudekei.jsonc`.
 
 ## Config file (`claudekei.jsonc`)
 
-Like `oh-my-openkei.jsonc`, an optional JSONC file (comments and trailing commas allowed)
-changes specialist models and session limits without forking the plugin:
+Like `oh-my-openkei.jsonc`, but with one `presets` map (no named presets) and OpenCode's
+`variant` renamed to Claude Code's `effort`. This optional JSONC file (comments and trailing
+commas allowed) changes specialist models/effort and session limits without forking the plugin:
 
 | File | Scope |
 |---|---|
 | `~/.claude/claudekei.jsonc` (or `.json`) | All projects |
 | `<project>/.claude/claudekei.jsonc` (or `.json`) | This project; wins per field over the user file |
 
+The repo root has a ready-to-copy template, [`claudekei.jsonc`](../claudekei.jsonc), with every
+specialist at its default (a test keeps it in sync with `agents/*.md`).
+
 ```jsonc
 {
-  // Active preset (optional). Entries under "agents" are applied on top of it.
-  "preset": "default",
   "presets": {
-    "default": {
-      "oracle":   { "model": "opus",   "variant": "xhigh" },
-      "debugger": { "model": "sonnet", "variant": "high" },
-      "explorer": { "model": "haiku" },
-    },
-    "cheap": {
-      "oracle": { "model": "sonnet" },
-    },
-  },
-  "agents": {
-    // Primary agents: default model/effort for new sessions (see below)
-    "planner": { "model": "opus", "variant": "xhigh" },
-    "frontend-developer": { "model": "sonnet", "effort": "high" },
+    "oracle":   { "model": "opus",   "effort": "xhigh" },
+    "debugger": { "model": "sonnet", "effort": "high" },
+    "explorer": { "model": "haiku" },
   },
   "sessionManager": {
-    "maxSessionsPerAgent": 2,
+    "maxSessionsPerAgent": 1,
     "readContextMinLines": 10,
     "readContextMaxFiles": 8,
     "phaseReminder": true,
@@ -43,22 +35,22 @@ changes specialist models and session limits without forking the plugin:
 
 | Option | Values |
 |---|---|
-| `<agent>.model` | Specialists: `opus`, `sonnet`, `haiku`, `fable` (other values are ignored). Primary agents: also any full model id |
-| `<agent>.effort` (or `variant`) | `low`, `medium`, `high`, `xhigh`, `max` |
+| `presets.<agent>.model` | `opus`, `sonnet`, `haiku`, `fable` (other values are ignored) |
+| `presets.<agent>.effort` | `low`, `medium`, `high`, `xhigh`, `max` |
+| `agentScope` | Where `/claudekei:agent` saves: `"project"` (default, `.claude/settings.local.json`) or `"global"` (`~/.claude/settings.json`) |
 | `sessionManager.*` | Same as the `KEI_*` variables below; a set env variable wins |
 
-**Specialists:** the `PreToolUse` hook fills `model`/`effort` into each `Agent` call for a
+The `PreToolUse` hook fills `model`/`effort` into each `Agent` call for a
 `claudekei:<agent>`, which overrides the agent file. The file is read on every call, so
 edits apply immediately, with no plugin update or new session.
 
-**Primary agents** (orchestrator, planner, sprinter, business-analyst): `/claudekei:agent <name>`
-writes their `model`/`effort` as the *default* for new sessions (`model` and `effortLevel` in
-`.claude/settings.local.json`, next to `agent`); `/claudekei:agent reset` uses the
-`orchestrator` entry. The app's model picker and `/model` still change it per session.
-`effortLevel` stops at `xhigh`, so `max` starts new sessions at `xhigh`. The plugin only
-removes a `model`/`effortLevel` it wrote itself; a value you set by hand stays.
-
 Limits:
+
+- Only specialists. Primary agents (orchestrator, planner, sprinter, business-analyst)
+  are ignored here; they run on the session's model and effort: pick them in the app (model menu Cmd+Shift+I,
+  effort menu Cmd+Shift+E) or with `/model` and `/effort`. The desktop app starts every
+  session with explicit `--model`/`--effort` flags, which beat any settings value, so the
+  plugin does not try to set them.
 
 - If the orchestrator passes `model`/`effort` itself (e.g. you asked for it), that wins.
 - A child resumed with `SendMessage` keeps the model it started with.
@@ -101,7 +93,7 @@ tool use.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `KEI_MAX_SESSIONS_PER_AGENT` | `2` | Settled resumable children listed per specialist (1–10) |
+| `KEI_MAX_SESSIONS_PER_AGENT` | `1` | Settled resumable children listed per specialist (1–10) |
 | `KEI_READ_CONTEXT_MIN_LINES` | `10` | Min lines read before a file appears in read context |
 | `KEI_READ_CONTEXT_MAX_FILES` | `8` | Files listed per child (`0` hides read context) |
 | `KEI_PHASE_REMINDER` | `1` | `0` disables the workflow reminder and Read/Write nudge |
@@ -118,6 +110,14 @@ in the project's `.claude/settings.local.json`, keeps every other key, and block
 prompt so no model turn is spent. It applies to sessions started afterwards; the current
 conversation keeps its agent (use `/claudekei:<mode>` to switch roles in place). Keep
 `settings.local.json` out of git if your repo does not ignore it already.
+
+To keep everything global (no `.claude/` folder in your projects), set `"agentScope": "global"`
+in `~/.claude/claudekei.jsonc`. `/claudekei:agent` then sets `"agent"` in
+`~/.claude/settings.json`, for every project, and keeps all other keys there. A project
+that still has its own `agent` (in `.claude/settings.local.json` or `.claude/settings.json`)
+wins over it; the command's message points that out. Plugin v0.4.0
+also wrote `model`/`effortLevel` there; the next `/claudekei:agent` removes them unless
+you changed them by hand.
 
 To use plain Claude Code in a project, disable the plugin there:
 
@@ -150,8 +150,7 @@ allowlists already accept these names:
       "type": "http",
       "url": "https://mcp.atlassian.com/v1/mcp?capabilities=READ_JIRA,SEARCH_JIRA,READ_CONFLUENCE,SEARCH_CONFLUENCE"
     },
-    "figma": { "type": "http", "url": "http://127.0.0.1:3845/mcp" },
-    "trigger": { "command": "npx", "args": ["trigger.dev@latest", "mcp", "--readonly"] }
+    "figma": { "type": "http", "url": "http://127.0.0.1:3845/mcp" }
   }
 }
 ```
@@ -160,9 +159,9 @@ allowlists already accept these names:
 |---|---|
 | `serena` | explorer (+ every agent without a `tools` allowlist) |
 | `atlassian` | librarian (+ unrestricted agents) |
-| `figma`, `trigger` | designer, developers, primary agents (no allowlist) |
+| `figma` | designer, developers, primary agents (no allowlist) |
 
-Read-only agents (explorer, librarian, oracle, debugger, observer) only see the tools in
+Read-only agents (explorer, librarian, oracle, debugger) only see the tools in
 their `tools:` line; edit it to grant more.
 
 ## Skills
@@ -171,7 +170,7 @@ Bundled skills (`/claudekei:<name>`): `backend-developer`, `business-analyst`, `
 `karpathy-guidelines`, `simplify`, `vercel-react-best-practices`.
 
 Agents preload theirs through the `skills:` frontmatter. Skills that oh-my-openkei
-referenced but did not ship (`agent-browser`, `requesting-code-review`, `trigger-*`)
+referenced but did not ship (`agent-browser`, `requesting-code-review`)
 are not bundled — install them separately and add them to the agent's `skills:` list.
 
 ## Custom agents

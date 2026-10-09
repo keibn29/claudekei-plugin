@@ -2,6 +2,7 @@
 name: designer
 description: 'UI/UX decision authority: direction, layout, interaction design, accessibility judgment, visual polish, and UI review. Use when a design decision is needed before implementation.'
 model: sonnet
+effort: high
 disallowedTools: Agent
 color: pink
 ---
