@@ -130,7 +130,7 @@ From the terminal, `claude --agent claudekei:<name>` starts a session with that 
 | librarian | haiku, effort low | read-only + WebFetch/WebSearch + context7, grep_app, websearch (+ Atlassian) | Library docs, API references, GitHub examples |
 | oracle | opus, effort high | read-only, skill `simplify` | Architecture, trade-offs, code review, escalated bugs |
 | debugger | sonnet, effort xhigh | read-only | Root-cause investigation, no fixes |
-| designer | sonnet, effort high | full (no subagents) | UI/UX decisions and polish |
+| designer | sonnet, effort high | read + spec-only writes (`*.md`/`*.mdx`, `.designer/`); no Bash, no subagents; a `PreToolUse` hook denies code edits | UI/UX direction, specs, and review; implementation goes to frontend-developer |
 | frontend-developer | sonnet, effort high | full (no subagents), skills `vercel-react-best-practices`, `karpathy-guidelines` | Client-side implementation + tests |
 | backend-developer | sonnet, effort high | full (no subagents), skills `backend-developer`, `karpathy-guidelines` | Server-side implementation + tests |
 

@@ -32,6 +32,11 @@ export const DELEGATE_SETS = {
   'business-analyst': new Set(['explorer', 'librarian', 'oracle']),
 };
 
+// Specialist that may only write design specs, never source code (enforced by
+// the PreToolUse file-edit hook), and the file tools that hook inspects.
+export const DECISION_ONLY_AGENT = 'designer';
+export const FILE_EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
+
 export const ALIAS_PREFIXES = {
   explorer: 'exp',
   librarian: 'lib',

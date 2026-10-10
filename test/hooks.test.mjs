@@ -500,3 +500,39 @@ test('"agentScope": "global" makes /claudekei:agent use ~/.claude/settings.json 
   });
   assert.equal(readFileSync(join(project, '.claude', 'settings.local.json'), 'utf8'), '{ "agent": "claudekei:planner" }');
 });
+
+test('PreToolUse file edits: @designer may only write design specs', () => {
+  const s = newSession();
+  const edit = (agentType, toolName, toolInput, agentId = 'a1') =>
+    run({
+      session_id: s,
+      cwd: '/repo',
+      hook_event_name: 'PreToolUse',
+      tool_name: toolName,
+      tool_input: toolInput,
+      ...(agentType ? { agent_id: agentId, agent_type: agentType } : { agent_type: 'claudekei:orchestrator' }),
+    });
+
+  const denied = edit('claudekei:designer', 'Edit', {
+    file_path: '/repo/src/App.tsx',
+    old_string: 'a',
+    new_string: 'b',
+  });
+  assert.equal(denied.hookSpecificOutput.permissionDecision, 'deny');
+  assert.match(denied.hookSpecificOutput.permissionDecisionReason, /decision-only.*src\/App\.tsx/);
+  assert.equal(edit('designer', 'Write', { file_path: '/repo/a.css', content: '' }).hookSpecificOutput.permissionDecision, 'deny');
+
+  assert.equal(edit('claudekei:designer', 'Write', { file_path: '/repo/.designer/spec.md', content: 'x' }), null);
+  assert.equal(edit('claudekei:designer', 'Write', { file_path: '/repo/.designer/tokens.json', content: 'x' }), null);
+  assert.equal(edit('claudekei:designer', 'Write', { file_path: '/repo/docs/x.md', content: 'x' }), null);
+  assert.equal(edit('claudekei:designer', 'Write', { file_path: '/repo/docs/x.mdx', content: 'x' }), null);
+
+  const notebook = edit('claudekei:designer', 'NotebookEdit', { notebook_path: '/repo/a.ipynb', new_source: 'x' });
+  assert.equal(notebook.hookSpecificOutput.permissionDecision, 'deny');
+
+  // Fail open on odd shapes, and never touch other agents or the main thread.
+  assert.equal(edit('claudekei:designer', 'Edit', {}), null);
+  assert.equal(edit('claudekei:designer', 'Edit', undefined), null);
+  assert.equal(edit('claudekei:frontend-developer', 'Edit', { file_path: '/repo/src/App.tsx' }), null);
+  assert.equal(edit(null, 'Edit', { file_path: '/repo/src/App.tsx' }), null);
+});

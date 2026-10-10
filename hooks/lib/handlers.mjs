@@ -5,6 +5,7 @@
 import {
   NUDGE_AGENTS,
   PHASE_REMINDER_TEXT,
+  FILE_EDIT_TOOLS,
   PLUGIN_NAME,
   PRIMARY_AGENTS,
   REMINDER_AGENTS,
@@ -19,6 +20,7 @@ import {
   applyAgentConfig,
   applyModeSwitch,
   checkDelegation,
+  checkDesignerEdit,
   clearStaleMode,
   detectModeSwitch,
   effectiveMode,
@@ -215,6 +217,13 @@ function onPreAgent(input, { store, agents }) {
   };
 }
 
+// Subagent-only guard: @designer may write design specs but not source code.
+function onPreFileEdit(input) {
+  if (isMainThread(input)) return null;
+  const reason = checkDesignerEdit(input.agent_type, input.tool_input);
+  return reason ? deny(reason) : null;
+}
+
 function onPreSendMessage(input, { store }) {
   const toolInput = input.tool_input ?? {};
   const target = toolInput.to;
@@ -317,6 +326,7 @@ export function handle(input, deps) {
     case 'PreToolUse':
       if (input.tool_name === 'Agent') return onPreAgent(input, deps);
       if (input.tool_name === 'SendMessage') return onPreSendMessage(input, deps);
+      if (FILE_EDIT_TOOLS.has(input.tool_name)) return onPreFileEdit(input);
       return null;
     case 'PostToolUse':
       if (input.tool_name === 'Agent') return onPostAgent(input, deps);

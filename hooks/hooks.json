@@ -25,7 +25,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Agent|SendMessage",
+        "matcher": "Agent|SendMessage|Edit|Write|MultiEdit|NotebookEdit",
         "hooks": [
           {
             "type": "command",

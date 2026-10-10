@@ -18,6 +18,7 @@ history. The plugin adds the OpenCode-style ergonomics on top with hooks
 | `PostToolUse` · `SendMessage` | Marks the child as running again |
 | `SubagentStop` | Marks the child as settled (idle) |
 | `PostToolUse` · `Read` (inside a child) | Records which files that child has read |
+| `PreToolUse` · `Edit`/`Write`/`MultiEdit`/`NotebookEdit` (inside `designer`) | Denies edits to anything but design specs (`*.md`, `*.mdx`, `.designer/`); fails open on unexpected input |
 | `UserPromptSubmit` | Injects the workflow reminder + the `### Resumable Sessions` list |
 | `SessionStart` (resume/compact) | Re-advertises aliases after `--resume` or compaction |
 

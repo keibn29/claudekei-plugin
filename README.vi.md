@@ -129,7 +129,7 @@ Từ terminal, `claude --agent claudekei:<tên>` mở session với agent đó l
 | librarian | haiku, effort low | chỉ đọc + WebFetch/WebSearch + context7, grep_app, websearch (+ Atlassian) | Tra tài liệu thư viện, API, ví dụ GitHub |
 | oracle | opus, effort high | chỉ đọc, skill `simplify` | Kiến trúc, trade-off, review code, bug khó |
 | debugger | sonnet, effort high | chỉ đọc | Tìm nguyên nhân gốc, không sửa |
-| designer | sonnet, effort high | đầy đủ (không gọi subagent) | Quyết định UI/UX |
+| designer | sonnet, effort high | đọc + chỉ ghi spec (`*.md`/`*.mdx`, `.designer/`); không Bash, không gọi subagent; hook `PreToolUse` chặn sửa code | Định hướng, spec và review UI/UX; phần code giao cho frontend-developer |
 | frontend-developer | sonnet, effort high | đầy đủ (không gọi subagent), skill `vercel-react-best-practices`, `karpathy-guidelines` | Code phía client + test |
 | backend-developer | sonnet, effort high | đầy đủ (không gọi subagent), skill `backend-developer`, `karpathy-guidelines` | Code phía server + test |
 

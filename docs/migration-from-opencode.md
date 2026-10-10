@@ -12,6 +12,7 @@
 | `question` tool | `AskUserQuestion` (primary agents); subagents return the question to the caller |
 | Phase reminder, post-Read/Write nudge | `UserPromptSubmit` / `PostToolUse` hooks |
 | Planner delegate validation | `PreToolUse` hook on `Agent` + `tools: Agent(...)` allowlist |
+| Designer is decision/spec-only | `disallowedTools: Agent, Bash, NotebookEdit` + `PreToolUse` hook on file edits (only `*.md`/`*.mdx`/`.designer/` allowed) |
 | Read-only permission profile | `tools:` allowlists |
 | Per-agent skill permissions + "load skills first" | `skills:` frontmatter (preloaded) |
 | Per-agent MCP lists | `tools:` allowlists with `mcp__plugin_claudekei_<server>__*` |

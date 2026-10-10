@@ -1,6 +1,6 @@
 ---
 name: karpathy-guidelines
-description: Inspired by Andrej Karpathy's observations on LLM coding pitfalls. Four principles: Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution. Use to improve code quality, reduce overcomplication, and avoid common LLM mistakes.
+description: "Inspired by Andrej Karpathy's observations on LLM coding pitfalls. Four principles: Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution. Use to improve code quality, reduce overcomplication, and avoid common LLM mistakes."
 metadata:
   author: Andrej Karpathy / forrestchang
   version: "1.0.0"

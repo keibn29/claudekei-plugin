@@ -7,6 +7,7 @@
 
 import {
   ALIAS_PREFIXES,
+  DECISION_ONLY_AGENT,
   DELEGATE_SETS,
   MODE_COMMANDS,
   PLUGIN_NAME,
@@ -163,6 +164,31 @@ export function checkDelegation(mode, subagentType) {
   if (allowed.has(type)) return null;
   const list = [...allowed].map((t) => `claudekei:${t}`).join(', ');
   return `${mode} may only delegate to: ${list}. "${subagentType}" is not allowed in ${mode} mode.`;
+}
+
+const SPEC_EXTENSION = /\.mdx?$/i;
+const SPEC_DIRECTORY = /(^|[\\/])\.designer[\\/]/;
+
+/** Design-spec files @designer may write: `*.md`, `*.mdx`, or anything under `.designer/`. */
+export function isDesignSpecPath(path) {
+  return SPEC_EXTENSION.test(path) || SPEC_DIRECTORY.test(path);
+}
+
+/**
+ * Deny reason when a decision-only specialist (@designer) tries to edit a
+ * non-spec file, otherwise null. Anything unexpected (no path, other agents)
+ * yields null so the hook fails open.
+ */
+export function checkDesignerEdit(agentType, toolInput) {
+  if (shortType(agentType) !== DECISION_ONLY_AGENT) return null;
+  const path = toolInput?.file_path ?? toolInput?.notebook_path;
+  if (typeof path !== 'string' || !path) return null;
+  if (isDesignSpecPath(path)) return null;
+  return (
+    `${PLUGIN_NAME}: @${DECISION_ONLY_AGENT} is decision-only and cannot edit code (${path}). ` +
+    'Put the spec in your report or in .designer/*.md; the orchestrator will route ' +
+    'implementation to @frontend-developer.'
+  );
 }
 
 /**
