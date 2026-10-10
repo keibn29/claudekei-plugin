@@ -40,14 +40,14 @@ thay vì bắt đầu lại từ đầu, giống cơ chế `task_id` bên OpenCo
 Yêu cầu: Claude Code ≥ 2.1, Node.js ≥ 18 (hook chạy bằng `node`).
 
 ```bash
-claude plugin marketplace add keibn29/claudekei
+claude plugin marketplace add keibn29/claudekei-plugin
 ```
 
 ```bash
 claude plugin install claudekei@claudekei
 ```
 
-Hoặc trong Claude Code: `/plugin marketplace add keibn29/claudekei`, rồi
+Hoặc trong Claude Code: `/plugin marketplace add keibn29/claudekei-plugin`, rồi
 `/plugin install claudekei@claudekei`.
 
 Cập nhật lên bản mới nhất:
@@ -60,12 +60,12 @@ claude plugin marketplace update claudekei
 claude plugin update claudekei@claudekei
 ```
 
-Muốn dùng bản clone ở máy thì thêm thư mục: `claude plugin marketplace add ~/Projects/claudekei`.
+Muốn dùng bản clone ở máy thì thêm thư mục: `claude plugin marketplace add ~/Projects/claudekei-plugin`.
 
 Chạy thử không cần cài:
 
 ```bash
-claude --plugin-dir ~/Projects/claudekei
+claude --plugin-dir ~/Projects/claudekei-plugin
 ```
 
 Kiểm tra: mở session và gõ `ping all agents`, orchestrator sẽ gọi lần lượt từng specialist.
@@ -154,7 +154,7 @@ model/effort mặc định, nên copy về mà chưa sửa thì không thay đ�
 bạn đã có), rồi sửa các giá trị muốn đổi:
 
 ```bash
-mkdir -p ~/.claude && [ -f ~/.claude/claudekei.jsonc ] || curl -fsSL https://raw.githubusercontent.com/keibn29/claudekei/main/claudekei.jsonc -o ~/.claude/claudekei.jsonc
+mkdir -p ~/.claude && [ -f ~/.claude/claudekei.jsonc ] || curl -fsSL https://raw.githubusercontent.com/keibn29/claudekei-plugin/main/claudekei.jsonc -o ~/.claude/claudekei.jsonc
 ```
 
 Từ bản clone ở máy: `cp -n claudekei.jsonc ~/.claude/claudekei.jsonc`. Muốn áp dụng cho riêng

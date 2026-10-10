@@ -40,14 +40,14 @@ follow-up work continues in the same context instead of starting from scratch.
 Requirements: Claude Code ≥ 2.1, Node.js ≥ 18 (hooks run with `node`).
 
 ```bash
-claude plugin marketplace add keibn29/claudekei
+claude plugin marketplace add keibn29/claudekei-plugin
 ```
 
 ```bash
 claude plugin install claudekei@claudekei
 ```
 
-Or inside Claude Code: `/plugin marketplace add keibn29/claudekei`, then
+Or inside Claude Code: `/plugin marketplace add keibn29/claudekei-plugin`, then
 `/plugin install claudekei@claudekei`.
 
 Update to the latest release:
@@ -60,12 +60,12 @@ claude plugin marketplace update claudekei
 claude plugin update claudekei@claudekei
 ```
 
-To work from a local clone instead, add the folder: `claude plugin marketplace add ~/Projects/claudekei`.
+To work from a local clone instead, add the folder: `claude plugin marketplace add ~/Projects/claudekei-plugin`.
 
 Try it without installing:
 
 ```bash
-claude --plugin-dir ~/Projects/claudekei
+claude --plugin-dir ~/Projects/claudekei-plugin
 ```
 
 Verify: start a session and ask `ping all agents` — the orchestrator should launch each
@@ -156,7 +156,7 @@ its default model/effort, so an unedited copy changes nothing. Copy it (skipped 
 already have one), then edit the values you want:
 
 ```bash
-mkdir -p ~/.claude && [ -f ~/.claude/claudekei.jsonc ] || curl -fsSL https://raw.githubusercontent.com/keibn29/claudekei/main/claudekei.jsonc -o ~/.claude/claudekei.jsonc
+mkdir -p ~/.claude && [ -f ~/.claude/claudekei.jsonc ] || curl -fsSL https://raw.githubusercontent.com/keibn29/claudekei-plugin/main/claudekei.jsonc -o ~/.claude/claudekei.jsonc
 ```
 
 From a local clone: `cp -n claudekei.jsonc ~/.claude/claudekei.jsonc`. For one project only,

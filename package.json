@@ -1,13 +1,13 @@
 {
   "name": "claudekei",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "private": true,
   "description": "Claude Code plugin port of oh-my-openkei: orchestrator + specialist subagents with resumable sessions.",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/keibn29/claudekei.git"
+    "url": "git+https://github.com/keibn29/claudekei-plugin.git"
   },
   "scripts": {
     "test": "node --test 'test/*.test.mjs'",
