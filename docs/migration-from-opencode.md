@@ -14,7 +14,7 @@
 | Planner delegate validation | `PreToolUse` hook on `Agent` + `tools: Agent(...)` allowlist |
 | Designer is decision/spec-only | `disallowedTools: Agent, Bash, NotebookEdit` + `PreToolUse` hook on file edits (only `*.md`/`*.mdx`/`.designer/` allowed) |
 | Read-only permission profile | `tools:` allowlists |
-| Per-agent skill permissions + "load skills first" | `skills:` frontmatter (preloaded) |
+| Per-agent skill permissions + "load skills first" | `skills:` frontmatter (namespaced `claudekei:<name>`, preloaded) + a "verify/load your skills first" step in the FE/BE/BA prompts |
 | Per-agent MCP lists | `tools:` allowlists with `mcp__plugin_claudekei_<server>__*` |
 | `variant` | `effort` |
 | Tab to switch primary agent | `claude --agent claudekei:<name>` or `/claudekei:orchestrate`, `/claudekei:plan`, `/claudekei:sprint`, `/claudekei:analyze` |
@@ -34,7 +34,7 @@
 | Mixed providers per agent, model fallback chains (`foreground-fallback`) | Claude Code runs Anthropic models; `claudekei.jsonc` only picks among `opus`/`sonnet`/`haiku`/`fable`. See [configuration](configuration.md#third-party-models-unsupported-by-anthropic) |
 | `apply-patch`, `json-error-recovery`, `delegate-task-retry` | Worked around non-Claude tool-call quirks |
 | `chat-headers`, image hook | OpenCode-specific |
-| `filter-available-skills` | Replaced by `skills:` preloading |
+| `filter-available-skills` | Replaced by `skills:` preloading (namespaced names) |
 | `auto-update-checker`, CLI installer, config schema | Handled by the plugin marketplace; the active `oh-my-openkei.jsonc` preset maps to the single `subAgents` map in `claudekei.jsonc` (models/effort/sessionManager) |
 | `webfetch` (smartfetch), `ast_grep_*` tools | Use built-in `WebFetch`; add an ast-grep MCP server if you need structural search |
 | `disabled_agents`, `displayName`, prompt override files | Edit or delete files in `agents/` |

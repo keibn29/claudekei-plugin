@@ -20,7 +20,7 @@ follow-up work continues in the same context instead of starting from scratch.
 | Orchestrator as the main agent | `settings.json` → `"agent": "orchestrator"` |
 | Specialists | `agents/*.md` subagents, invoked as `claudekei:<name>` via the `Agent` tool |
 | Session reuse | Native `SendMessage` resume + hooks that map aliases → agent ids |
-| Per-agent skills | `skills:` frontmatter (preloaded, no "load skills first" step) |
+| Per-agent skills | `skills:` frontmatter (namespaced `claudekei:<name>`, preloaded; FE/BE/BA also verify and load them first via `Skill`) |
 | Per-agent MCP access | `tools:` allowlists (`mcp__plugin_claudekei_context7__*`, …) |
 | Planner / Sprinter / Business Analyst | `claude --agent claudekei:<name>` or `/claudekei:plan`, `/claudekei:sprint`, `/claudekei:analyze` in-session |
 | Workflow reminders | `UserPromptSubmit` / `PostToolUse` hooks |
@@ -127,12 +127,12 @@ From the terminal, `claude --agent claudekei:<name>` starts a session with that 
 | Agent | Default model | Access | Role |
 |---|---|---|---|
 | explorer | haiku, effort low | read-only (+ Serena if configured) | Locate files, symbols, patterns |
-| librarian | haiku, effort low | read-only + WebFetch/WebSearch + context7, grep_app, websearch (+ Atlassian) | Library docs, API references, GitHub examples |
-| oracle | opus, effort high | read-only, skill `simplify` | Architecture, trade-offs, code review, escalated bugs |
+| librarian | haiku, effort low | read-only + `ToolSearch` + context7, grep_app, websearch (+ Atlassian); WebFetch/WebSearch only as fallback | Library docs, API references, GitHub examples |
+| oracle | opus, effort high | read-only, skill `claudekei:simplify` | Architecture, trade-offs, code review, escalated bugs |
 | debugger | sonnet, effort xhigh | read-only | Root-cause investigation, no fixes |
 | designer | sonnet, effort high | read + spec-only writes (`*.md`/`*.mdx`, `.designer/`); no Bash, no subagents; a `PreToolUse` hook denies code edits | UI/UX direction, specs, and review; implementation goes to frontend-developer |
-| frontend-developer | sonnet, effort high | full (no subagents), skills `vercel-react-best-practices`, `karpathy-guidelines` | Client-side implementation + tests |
-| backend-developer | sonnet, effort high | full (no subagents), skills `backend-developer`, `karpathy-guidelines` | Server-side implementation + tests |
+| frontend-developer | sonnet, effort high | full (no subagents), skills `claudekei:vercel-react-best-practices`, `claudekei:karpathy-guidelines` | Client-side implementation + tests |
+| backend-developer | sonnet, effort high | full (no subagents), skills `claudekei:backend-developer`, `claudekei:karpathy-guidelines` | Server-side implementation + tests |
 
 ### Models and effort
 

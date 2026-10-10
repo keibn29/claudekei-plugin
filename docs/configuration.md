@@ -159,9 +159,9 @@ Bundled in `.mcp.json` (no setup needed):
 
 | Server | Used by | Notes |
 |---|---|---|
-| `context7` | librarian | Library docs. Anonymous rate limit; for a key, add your own `context7` server with a `CONTEXT7_API_KEY` header |
-| `grep_app` | librarian | GitHub code search |
-| `websearch` | librarian | Exa web search (anonymous) |
+| `context7` | librarian | Library docs (`resolve-library-id`, `query-docs`). Anonymous rate limit; for a key, add your own `context7` server with a `CONTEXT7_API_KEY` header |
+| `grep_app` | librarian | GitHub code search (`searchGitHub`) |
+| `websearch` | librarian | Exa web search (`web_search_exa`, anonymous) |
 
 Optional servers from oh-my-openkei that need local setup or auth. Add them to your
 user (`claude mcp add --scope user ...`) or project `.mcp.json`; the agents' tool
@@ -192,12 +192,21 @@ allowlists already accept these names:
 Read-only agents (explorer, librarian, oracle, debugger) only see the tools in
 their `tools:` line; edit it to grant more.
 
+HTTP MCP servers connect a few seconds after a subagent starts, so the librarian has
+`ToolSearch` (it waits for connecting servers) and is told to prefer context7, grep_app and
+websearch in that order; WebFetch/WebSearch are only a fallback. Its allowlist accepts both
+the plugin form (`mcp__plugin_claudekei_<server>__*`) and the bare form (`mcp__<server>__*`,
+used when `.mcp.json` is loaded as project config).
+
 ## Skills
 
 Bundled skills (`/claudekei:<name>`): `backend-developer`, `business-analyst`, `codemap`,
 `karpathy-guidelines`, `simplify`, `vercel-react-best-practices`.
 
-Agents preload theirs through the `skills:` frontmatter. Skills that oh-my-openkei
+Agents preload theirs through the `skills:` frontmatter, using the namespaced name
+(`claudekei:simplify`, …) so a bare name cannot resolve to a built-in or user skill of the same
+name. frontend-developer, backend-developer and business-analyst also start by checking that
+all their skills are in context and load any missing one with the `Skill` tool. Skills that oh-my-openkei
 referenced but did not ship (`agent-browser`, `requesting-code-review`)
 are not bundled — install them separately and add them to the agent's `skills:` list.
 

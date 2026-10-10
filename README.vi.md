@@ -20,7 +20,7 @@ thay vì bắt đầu lại từ đầu, giống cơ chế `task_id` bên OpenCo
 | Orchestrator là agent chính | `settings.json` → `"agent": "orchestrator"` |
 | Các specialist | Subagent trong `agents/*.md`, gọi bằng `claudekei:<tên>` qua tool `Agent` |
 | Tái sử dụng session | `SendMessage` (resume gốc của Claude Code) + hook ánh xạ alias → agent id |
-| Skill riêng cho từng agent | Frontmatter `skills:` (nạp sẵn, không cần bước "load skill trước") |
+| Skill riêng cho từng agent | Frontmatter `skills:` (tên có namespace `claudekei:<name>`, nạp sẵn; FE/BE/BA còn tự kiểm tra và nạp lại bằng `Skill` ở bước đầu) |
 | Quyền MCP theo agent | Allowlist `tools:` (`mcp__plugin_claudekei_context7__*`, …) |
 | Planner / Sprinter / Business Analyst | `claude --agent claudekei:<tên>` hoặc `/claudekei:plan`, `/claudekei:sprint`, `/claudekei:analyze` ngay trong hội thoại |
 | Nhắc workflow | Hook `UserPromptSubmit` / `PostToolUse` |
@@ -126,12 +126,12 @@ Từ terminal, `claude --agent claudekei:<tên>` mở session với agent đó l
 | Agent | Model mặc định | Quyền | Vai trò |
 |---|---|---|---|
 | explorer | haiku, effort low | chỉ đọc (+ Serena nếu cấu hình) | Tìm file, symbol, pattern |
-| librarian | haiku, effort low | chỉ đọc + WebFetch/WebSearch + context7, grep_app, websearch (+ Atlassian) | Tra tài liệu thư viện, API, ví dụ GitHub |
-| oracle | opus, effort high | chỉ đọc, skill `simplify` | Kiến trúc, trade-off, review code, bug khó |
+| librarian | haiku, effort low | chỉ đọc + `ToolSearch` + context7, grep_app, websearch (+ Atlassian); WebFetch/WebSearch chỉ làm phương án dự phòng | Tra tài liệu thư viện, API, ví dụ GitHub |
+| oracle | opus, effort high | chỉ đọc, skill `claudekei:simplify` | Kiến trúc, trade-off, review code, bug khó |
 | debugger | sonnet, effort high | chỉ đọc | Tìm nguyên nhân gốc, không sửa |
 | designer | sonnet, effort high | đọc + chỉ ghi spec (`*.md`/`*.mdx`, `.designer/`); không Bash, không gọi subagent; hook `PreToolUse` chặn sửa code | Định hướng, spec và review UI/UX; phần code giao cho frontend-developer |
-| frontend-developer | sonnet, effort high | đầy đủ (không gọi subagent), skill `vercel-react-best-practices`, `karpathy-guidelines` | Code phía client + test |
-| backend-developer | sonnet, effort high | đầy đủ (không gọi subagent), skill `backend-developer`, `karpathy-guidelines` | Code phía server + test |
+| frontend-developer | sonnet, effort high | đầy đủ (không gọi subagent), skill `claudekei:vercel-react-best-practices`, `claudekei:karpathy-guidelines` | Code phía client + test |
+| backend-developer | sonnet, effort high | đầy đủ (không gọi subagent), skill `claudekei:backend-developer`, `claudekei:karpathy-guidelines` | Code phía server + test |
 
 ### Model và effort
 

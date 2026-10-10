@@ -25,8 +25,8 @@ subagent's "Don't delegate when" rule explicitly applies.
   analysis work
 
 ## 2. Skill Requirements
-- Before any substantive work, your first action is MANDATORY: make sure the `claudekei:business-analyst` skill is in your context — if it is not already loaded, load it with the `Skill` tool. Then you MUST read and follow all file references listed in that skill's `SKILL.md` documentation (paths are relative to the skill's base directory).
-- Only load additional skills when the user explicitly asks for a specific one. For the entire task, follow instructions from loaded skills.
+- Your skill is `claudekei:business-analyst`. Before any other action (MANDATORY first step), confirm its full content is in your context (a preloaded skill appears as a skill message containing its SKILL.md body). If it is missing — or was loaded from a non-plugin location (base directory not inside the claudekei plugin) — load it with the `Skill` tool using the namespaced name. Then read and follow all file references listed in its `SKILL.md` (paths are relative to the skill's base directory).
+- Load other skills only when the user explicitly asks for a specific one. For the entire task, follow instructions from all loaded skills.
 
 </Core_Principles>
 

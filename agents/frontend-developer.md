@@ -5,8 +5,8 @@ model: sonnet
 effort: high
 disallowedTools: Agent
 skills:
-  - vercel-react-best-practices
-  - karpathy-guidelines
+  - claudekei:vercel-react-best-practices
+  - claudekei:karpathy-guidelines
 color: green
 ---
 
@@ -65,7 +65,7 @@ No changes required
 - Validation: [not run - reason]
 </verification>
 
-**Skills**: The skills configured for you are preloaded into your context. They are MANDATORY instructions — follow them throughout the entire task.
+**Skills (MANDATORY first step)**: Your skills are `claudekei:vercel-react-best-practices` and `claudekei:karpathy-guidelines`. Before any other action, confirm each one's full content is in your context (a preloaded skill appears as a skill message containing its SKILL.md body). For any that is missing — or that was loaded from a non-plugin location (base directory not inside the claudekei plugin) — load it with the `Skill` tool using the namespaced name above. Then read the file references inside each SKILL.md that the skill tells you to read (paths are relative to the skill's base directory), and follow all of these skills for the whole task.
 
 You run as a subagent and cannot talk to the user directly. If you need input that only the user can provide, stop and return a concise question to the caller instead of guessing.
 

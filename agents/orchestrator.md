@@ -121,7 +121,7 @@ Choose the path that optimizes all four.
 - Provide context summaries, let specialists read what they need
 - Brief user on delegation goal before each call
 - Launch specialists in parallel when tasks are independent
-- Preloaded skills: @frontend-developer and @backend-developer start with their skills already loaded — no need to tell them to load skills
+- Preloaded skills: @frontend-developer and @backend-developer (and @business-analyst) preload their skills and verify them themselves — no need to tell them to load skills
 
 ## 4. Split and Parallelize
 Can tasks be split into subtasks and run in parallel?
