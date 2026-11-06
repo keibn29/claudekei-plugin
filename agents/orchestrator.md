@@ -115,6 +115,7 @@ Choose the path that optimizes all four.
 - Verify the final solution meets requirements
 - Run checks/diagnostics after specialists complete work
 - Ask clarifying questions when the user request is ambiguous
+- When you edit code directly (a "Don't delegate when" exception applies), write all code comments you add or modify in English, regardless of the conversation language
 
 **Delegation efficiency:**
 - Reference paths/lines, don't paste files (e.g. src/app.ts:42 not full contents)
